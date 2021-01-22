@@ -1,21 +1,44 @@
 #include "pch.h"
 #include "WebSocket.h"
 
-class  Socket {
-	SOCKET sock; // socket handle
-	char* buf; // current buffer
-	int allocatedSize; //bytes allocated for buf
-	int curPos; // extra stuff as needed
-
-	bool Read(void);
-};
-
-
 Socket::Socket() {
 	buf = (char*) malloc(INITIAL_BUF_SIZE);
 	allocatedSize = INITIAL_BUF_SIZE;
+	curPos = 0;
+	// sock will be initialized and opened in the Open() method
 }
 
+// open a TCP socket
+bool Socket::Open(void) {
+	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sock == INVALID_SOCKET){
+		printf("socket() generated error %d\n", WSAGetLastError());
+		WSACleanup();
+		return false;
+	}
+
+	return true;
+}
+
+bool Socket::Connect(struct sockaddr_in server) {
+	if (connect(sock, (struct sockaddr*)&server, sizeof(struct sockaddr_in)) == SOCKET_ERROR){
+		printf("Connection error: %d\n", WSAGetLastError());
+		return false;
+	}
+
+	return true;
+}
+
+bool Socket::Send(char* sendBuf, int requestLen) {
+	if (send(sock, sendBuf, requestLen, 0) == SOCKET_ERROR) {
+		printf("Send error: %d\n", WSAGetLastError());
+		return false;
+	}
+
+	return true;
+}
+
+// read from a socket
 bool Socket::Read(void) {
 	TIMEVAL timeout;
 	timeout.tv_sec = 10; //sec
@@ -29,10 +52,10 @@ bool Socket::Read(void) {
 
 	// add socket descriptor to set
 	FD_SET(sock, &fds);
-	DWORD ret;
 
 	while (true) {
-		ret == select(0, &fds, NULL, NULL, &timeout);
+		DWORD ret;
+		ret = select(0, &fds, NULL, NULL, &timeout);
 		
 		// wait to see if socket has any data
 		if (ret > 0) {
@@ -85,4 +108,17 @@ bool Socket::Read(void) {
 	return false;
 
 
+}
+
+void Socket::Close(void) {
+	closesocket(sock);
+}
+
+char* Socket::GetBufferData() {
+	return buf;
+}
+
+Socket::~Socket() {
+	free(buf);
+	Close();
 }

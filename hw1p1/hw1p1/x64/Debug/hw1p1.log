@@ -1,7 +1,7 @@
-﻿  pch.cpp
-  hw1p1.cpp
-  webclient.cpp
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(68,2): error C2065: 'string': undeclared identifier
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(68,9): error C2146: syntax error: missing ';' before identifier 'httpRequest'
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(68,9): error C2065: 'httpRequest': undeclared identifier
-  Generating Code...
+﻿  TestUrlParser.cpp
+HTMLParser_debug_x64.lib(HTMLParserBase.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(HTMLParserBase.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+HTMLParser_debug_x64.lib(IRLBuffer.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(IRLBuffer.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+HTMLParser_debug_x64.lib(IRLparser.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(IRLparser.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+HTMLParser_debug_x64.lib(stdafx.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(stdafx.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+HTMLParser_debug_x64.lib(URL.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(URL.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+  hw1p1.vcxproj -> C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\hw1p1.exe

@@ -154,6 +154,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TestUrlParser.cpp" />
+    <ClCompile Include="URLParser.cpp" />
     <ClCompile Include="webclient.cpp" />
     <ClCompile Include="WebSocket.cpp" />
   </ItemGroup>
@@ -162,6 +164,9 @@
     <ClInclude Include="DNS.h" />
     <ClInclude Include="HTMLParserBase.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="TestUrlParser.h" />
+    <ClInclude Include="URLParser.h" />
+    <ClInclude Include="WebClient.h" />
     <ClInclude Include="WebSocket.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

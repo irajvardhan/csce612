@@ -1,28 +1,23 @@
 #include "pch.h"
+#include "WebClient.h"
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
+
+
+
+
+
 void client(void) {
 	// string pointing to an HTTP server (DNS name or IP)
 	//char str[] = "https://www.tamu.edu/about/index.html#global-presence";
 	//char str [] = "128.194.135.72";
 	char str[] = "www.tamu.edu";
 
-	WSADATA wsaData;
-
-	//Initialize WinSock; once per program run
-	WORD wVersionRequested = MAKEWORD(2, 2);
-	if (WSAStartup(wVersionRequested, &wsaData) != 0) {
-		printf("WSAStartup error %d\n", WSAGetLastError());
-		WSACleanup();
-		return;
-	}
+	Socket webSocket;
 
 	// open a TCP socket
-	SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (sock == INVALID_SOCKET)
-	{
-		printf("socket() generated error %d\n", WSAGetLastError());
-		WSACleanup();
+	if (!webSocket.Open()) {
+		printf("Error: Couldn't open socket");
 		return;
 	}
 
@@ -56,9 +51,8 @@ void client(void) {
 	server.sin_port = htons(80);		// host-to-network flips the byte order
 
 	// connect to the server on port 80
-	if (connect(sock, (struct sockaddr*)&server, sizeof(struct sockaddr_in)) == SOCKET_ERROR)
-	{
-		printf("Connection error: %d\n", WSAGetLastError());
+	if (!webSocket.Connect(server)) {
+		printf("Error: failed to connect to server\n");
 		return;
 	}
 
@@ -68,20 +62,48 @@ void client(void) {
 	string request = "";
 	string host = "";
 	string httpRequest = "GET " + request + "HTTP/1.0\r\n" + "User-agent: rajTAMUcrawler/1.0\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n";
-	int requestLen = httpRequest.length();
+	int requestLen = strlen(httpRequest.c_str());
 	char* sendBuf = new char[requestLen + 1];
-	strcpy(sendBuf, httpRequest.c_str());
+	strcpy_s(sendBuf, requestLen + 1, httpRequest.c_str());
 	
+	cout << "Log: sending request" << endl;
+
 	// if send request failed
-	if (send(sock, sendBuf, requestLen, 0) == SOCKET_ERROR) {
-		printf("Send error: %d\n", WSAGetLastError());
+	if (!webSocket.Send(sendBuf, requestLen)) {
+		printf("Error: Send request failed.\n");
 		return;
 	}
 
+	// if read from socket failed
+	if (!webSocket.Read()) {
+		printf("Error: Failed to read from socket.\n");
+		return;
+	}
 	
+	char* recvBuf = webSocket.GetBufferData();
+	if (recvBuf == NULL) {
+		printf("No data found in buffer\n");
+		return;
+	}
+
+	cout << "buffer data: " << recvBuf << endl;
+	// create new parser object
+	HTMLParserBase* parser = new HTMLParserBase;
+	int nLinks;
+	//char* linkBuffer = parser->Parse(recvBuf, fileSize, baseUrl, (int)strlen(baseUrl), &nLinks);
+
+	// check for errors indicated by negative values
+	/*if (nLinks < 0)
+		nLinks = 0;
+	
+	printf("Found %d links:\n", nLinks);
+	*/
+
+
+
 
 	// close the socket to this server; open again for the next one
-	closesocket(sock);
+	webSocket.Close();
 
 	// call cleanup when done with everything and ready to exit program
 	WSACleanup();
