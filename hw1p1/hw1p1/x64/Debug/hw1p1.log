@@ -1,0 +1,7 @@
+﻿  pch.cpp
+  hw1p1.cpp
+  webclient.cpp
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(68,2): error C2065: 'string': undeclared identifier
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(68,9): error C2146: syntax error: missing ';' before identifier 'httpRequest'
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(68,9): error C2065: 'httpRequest': undeclared identifier
+  Generating Code...
