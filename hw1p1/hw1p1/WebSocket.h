@@ -1,0 +1,4 @@
+#pragma once
+
+#define INITIAL_BUF_SIZE 4096
+#define REMAINING_SPACE_THRESHOLD 1024
