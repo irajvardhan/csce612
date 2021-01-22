@@ -45,6 +45,11 @@ Latest commit 6eff882 on Jul 3, 2020
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
+# large files
+*.ipch
+*.db
+*.vs/.*
+
 # Mono auto generated files
 mono_crash.*
 
@@ -404,3 +409,5 @@ API
 Training
 Blog
 About
+
+
