@@ -48,7 +48,8 @@ Latest commit 6eff882 on Jul 3, 2020
 # large files
 *.ipch
 *.db
-*.vs/.*
+vs.*
+x64.*
 
 # Mono auto generated files
 mono_crash.*

@@ -4,7 +4,6 @@
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
-
 void client(void) {
 	// string pointing to an HTTP server (DNS name or IP)
 	
@@ -17,10 +16,10 @@ void client(void) {
 	//char str [] = "128.194.135.72";
 	//string url = "http://balkans.aljazeera.net/misljenja";
 	//string url = "http://tamu.edu";
-	string url = "http://allybruener.com/"; // should give 2xx 
+	//string url = "http://allybruener.com/"; // should give 2xx 
 	//string url = "https://google.com"; // failed with invalid scheme
 	//string url = "http://xyz.com:0/"; // failed with invalid port
-
+	string url = "http://goopoiopoipoiopxx.com"; // 
 	const char* str = url.c_str();
 
 	printf("URL: %s\n", str);
@@ -62,7 +61,7 @@ void client(void) {
 		// if not a valid IP, then do a DNS lookup
 		if ((remote = gethostbyname(urlElems.host.c_str())) == NULL)
 		{
-			printf("Invalid string: neither FQDN, nor IP address\n");
+			printf("failed with %d\n", WSAGetLastError());
 			return;
 		}
 		else // take the first IP address and copy into sin_addr
@@ -87,7 +86,7 @@ void client(void) {
 	printf("\t* Connecting on page... ");
 	st = hrc::now();        // get start time point
 	if (!webSocket.Connect(server)) {
-		printf("Error: failed to connect to server\n");
+		printf("failed with %d\n", WSAGetLastError());
 		// close the socket to this server; open again for the next one
 		webSocket.Close();
 		return;
@@ -112,7 +111,7 @@ void client(void) {
 	printf("\t  Loading... ");
 	st = hrc::now();        // get start time point
 	if (!webSocket.Send(sendBuf, requestLen)) {
-		printf("Error: Send request failed.\n");
+		printf("failed with %d\n", WSAGetLastError());
 		// close the socket to this server; open again for the next one
 		webSocket.Close();
 		return;
@@ -120,7 +119,7 @@ void client(void) {
 
 	// read from the socket
 	if (!webSocket.Read()) {
-		printf("Error: Failed to read from socket.\n");
+		printf("failed with %d\n", WSAGetLastError());
 		// close the socket to this server; open again for the next one
 		webSocket.Close();
 		return;
@@ -128,7 +127,7 @@ void client(void) {
 	
 	char* recvBuf = webSocket.GetBufferData();
 	if (recvBuf == NULL) {
-		printf("Error: No data found in buffer\n");
+		printf("failed as no data found in buffer\n");
 		// close the socket to this server; open again for the next one
 		webSocket.Close();
 		return;
