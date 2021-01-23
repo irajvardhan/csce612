@@ -14,6 +14,7 @@
 #include "cpu.h"
 #include "DNS.h"
 #include "HTMLParserBase.h"
+#include "HttpResponseParser.h"
 #include <cstring>
 #include <time.h>
 #include <chrono>

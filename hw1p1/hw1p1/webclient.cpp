@@ -1,56 +1,8 @@
 #include "pch.h"
 #include "WebClient.h"
+
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
-
-int getStatusCode(string recvBuf) 
-{
-	int statusCode = -1;
-	if (recvBuf.empty()) {
-		return statusCode;
-	}
-
-	size_t found = recvBuf.find(" ");
-	// status code is in the first line, after the first " " and is of length 3
-	if ((found != string::npos) and (found + 3 < recvBuf.length())) {
-		statusCode = atoi(recvBuf.substr(found + 1, 3).c_str());
-	} 
-	
-	return statusCode;
-
-}
-
-
-string getHTTPresponseHeader(string recvBuf) {
-	string header = "";
-	if (recvBuf.empty()) {
-		return header;
-	}
-
-	size_t found = recvBuf.find("\r\n\r\n");
-	if (found != string::npos) {
-		header = recvBuf.substr(0, found);
-	}
-
-	return header;
-
-}
-
-string getHTTPresponseObject(string recvBuf) {
-
-	string responseObject = "";
-	if (recvBuf.empty()) {
-		return responseObject;
-	}
-
-	size_t found = recvBuf.find("\r\n\r\n");
-	if (found != string::npos) {
-		responseObject = recvBuf.substr(found+8);
-	}
-
-	return responseObject;
-
-}
 
 
 void client(void) {
@@ -65,7 +17,10 @@ void client(void) {
 	//char str [] = "128.194.135.72";
 	//string url = "http://balkans.aljazeera.net/misljenja";
 	//string url = "http://tamu.edu";
-	string url = "http://allybruener.com/";
+	string url = "http://allybruener.com/"; // should give 2xx 
+	//string url = "https://google.com"; // failed with invalid scheme
+	//string url = "http://xyz.com:0/"; // failed with invalid port
+
 	const char* str = url.c_str();
 
 	printf("URL: %s\n", str);
@@ -73,9 +28,10 @@ void client(void) {
 	URLParser urlParser;
 	URL urlElems = urlParser.parseURL(url);
 	if (!urlElems.isValid) {
-		printf("Invalid url\n");
+		printf("failed with invalid %s\n", urlElems.blameInvalidOn.c_str());
 		return;
 	}
+
 	string request = urlElems.path;
 	if (!urlElems.query.empty()) {
 		request = request + "?" + urlElems.query;
@@ -172,7 +128,7 @@ void client(void) {
 	
 	char* recvBuf = webSocket.GetBufferData();
 	if (recvBuf == NULL) {
-		printf("No data found in buffer\n");
+		printf("Error: No data found in buffer\n");
 		// close the socket to this server; open again for the next one
 		webSocket.Close();
 		return;
@@ -184,29 +140,29 @@ void client(void) {
 	elapsed = ELAPSED_MS(st, en);
 	printf("done in %.2f ms with %zu bytes\n", elapsed, strlen(recvBuf));
 
-	printf("\t  Verifying header... ");
-	int statusCode = getStatusCode(string(recvBuf));
-	printf("status code %d\n",statusCode);
+	
+	HttpResponseParser httpReponseParser;
+	HTTPresponse response = httpReponseParser.parseHttpResponse(recvBuf);
 
-	string responseHeader = getHTTPresponseHeader(string(recvBuf));
+	printf("\t  Verifying header... ");
+	printf("status code %d\n", response.statusCode);
 
 	// status code in 2xx format
-	if (statusCode >= 200 && statusCode <= 299) {
+	if (response.statusCode >= 200 && response.statusCode <= 299) {
 
-		printf("\t  Parsing page... ");
-		st = hrc::now();        // get start time point
-		string responseObject = getHTTPresponseObject(string(recvBuf));
-		//cout << "buffer data: " << recvBuf << endl;
+		printf("\t+ Parsing page... ");
+		st = hrc::now();        // get start time point		
 		// create new parser object
 		HTMLParserBase* parser = new HTMLParserBase;
 		int nLinks;
-		char* responseObjStr = new char[responseObject.length() + 1];
-		strcpy_s(responseObjStr, requestLen + 1, responseObject.c_str());
+		char* responseObjStr = new char[response.object.length() + 1];
+		strcpy_s(responseObjStr, response.object.length() + 1, response.object.c_str());
 
-		char* baseUrl = new char[urlElems.host.length() + 1];
-		strcpy_s(baseUrl, urlElems.host.length() + 1, urlElems.host.c_str());
+		string baseUrl = "http://www." + urlElems.host;
+		char* baseUrlstr = new char[baseUrl.length() + 1];
+		strcpy_s(baseUrlstr, baseUrl.length() + 1, baseUrl.c_str());
 
-		char* linkBuffer = parser->Parse(responseObjStr, strlen(responseObjStr), baseUrl, (int)strlen(baseUrl), &nLinks);
+		char* linkBuffer = parser->Parse(responseObjStr, strlen(responseObjStr), baseUrlstr, (int)strlen(baseUrlstr), &nLinks);
 
 		// check for errors indicated by negative values
 		if (nLinks < 0) {
@@ -215,11 +171,11 @@ void client(void) {
 
 		en = hrc::now();        // get end time point
 		elapsed = ELAPSED_MS(st, en);
-		printf("done in %.2f ms with %d links\n", elapsed, nLinks);
+		printf("done in %.2f ms with %d links\n\n", elapsed, nLinks);		
 	}
 
 	printf("----------------------------------------\n");
-	printf("%s\n", responseHeader.c_str());
+	printf("%s\n", response.header.c_str());
 	
 
 }

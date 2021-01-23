@@ -10,6 +10,7 @@ typedef struct url {
 	std::string query;
 	std::string fragment;
 	bool isValid;
+	std::string blameInvalidOn;
 }URL;
 
 class URLParser {
