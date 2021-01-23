@@ -16,5 +16,14 @@
 #include "HTMLParserBase.h"
 #include <cstring>
 #include <time.h>
+#include <chrono>
+#include <algorithm>
+
+
+// using chrono high_resolution_clock
+using namespace std::chrono;
+using hrc = high_resolution_clock;
+#define ELAPSED(st, en)			( duration_cast<duration<double>>(en - st).count() )
+#define ELAPSED_MS(st, en)		( duration_cast<duration<double, std::milli>>(en - st).count() )
 
 #endif //PCH_H

@@ -5,6 +5,7 @@ using namespace std;
 
 // parse a url
 URL URLParser::parseURL(string url) {
+	printf("\t  Parsing URL... ");
 	URL urlElems;
 	
 	if (url.empty()) {
@@ -14,13 +15,18 @@ URL URLParser::parseURL(string url) {
 	}
 
 	if (url.length() < 7 || url.substr(0, 7).compare("http://") != 0) {
-		printf("Error: Invalid scheme\n");
+		printf("failed with invalid scheme\n");
 		urlElems.isValid = false;
 		return urlElems;
 	}
 
 	// remove the scheme "http://"
 	url = url.substr(7);
+
+	// remove "www." if present
+	if (url.substr(0, 4).compare("www.") == 0) {
+		url = url.substr(4);
+	}
 
 	// exclude the fragment from the url and everything to its right
 	size_t found = url.find("#");
@@ -32,6 +38,7 @@ URL URLParser::parseURL(string url) {
 	}
 
 	// Extract query and truncate
+	urlElems.query = "";
 	found = url.find("?");
 	if (found != string::npos) {
 		// // query is not empty
@@ -52,23 +59,20 @@ URL URLParser::parseURL(string url) {
 		urlElems.path = "/";
 	}
 
+	// set default values of port and portSpecified
+	urlElems.port = 80;
+	urlElems.portSpecified = false;
 	found = url.find(":");
 	if (found != string::npos) {
 		if (found + 1 < url.length()) {
 			urlElems.port = atoi(url.substr(found+1).c_str());
-		}
-		else {
-			urlElems.port = 80;
-			urlElems.portSpecified = false;
+			urlElems.portSpecified = true;
 		}
 		url = url.substr(0, found);
 	}
-	else {
-		urlElems.port = 80;
-		urlElems.portSpecified = false;
-	}
 
 	urlElems.host = url;
+	urlElems.isValid = true;
 
 	return urlElems;
 }
