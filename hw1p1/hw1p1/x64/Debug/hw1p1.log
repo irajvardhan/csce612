@@ -1,4 +1,4 @@
 ﻿  webclient.cpp
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(151,46): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(209,114): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(109,46): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(167,120): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
   hw1p1.vcxproj -> C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\hw1p1.exe
