@@ -1,7 +1,4 @@
-﻿  TestUrlParser.cpp
-HTMLParser_debug_x64.lib(HTMLParserBase.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(HTMLParserBase.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
-HTMLParser_debug_x64.lib(IRLBuffer.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(IRLBuffer.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
-HTMLParser_debug_x64.lib(IRLparser.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(IRLparser.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
-HTMLParser_debug_x64.lib(stdafx.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(stdafx.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
-HTMLParser_debug_x64.lib(URL.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(URL.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+﻿  webclient.cpp
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(151,46): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(209,114): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
   hw1p1.vcxproj -> C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\hw1p1.exe

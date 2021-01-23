@@ -40,25 +40,26 @@ bool Socket::Send(char* sendBuf, int requestLen) {
 
 // read from a socket
 bool Socket::Read(void) {
-	TIMEVAL timeout;
-	timeout.tv_sec = 10; //sec
-	timeout.tv_usec = 0; //ms
-
 	// set of socket descriptors
 	fd_set fds;
-	
-	// clear set of descriptors
-	FD_ZERO(&fds);
 
-	// add socket descriptor to set
-	FD_SET(sock, &fds);
+	TIMEVAL timeout;
+
+	int ret;
 
 	while (true) {
-		DWORD ret;
-		ret = select(0, &fds, NULL, NULL, &timeout);
 		
+		// clear set of descriptors
+		FD_ZERO(&fds);
+
+		// add socket descriptor to set
+		FD_SET(sock, &fds);
+		
+		timeout.tv_sec = 10; //sec
+		timeout.tv_usec = 0; //ms
+
 		// wait to see if socket has any data
-		if (ret > 0) {
+		if ((ret = select(0, &fds, NULL, NULL, &timeout)) > 0) {
 
 			// new data is available; now read the next segment
 			int bytes = recv(sock, buf + curPos, allocatedSize - curPos, 0);
@@ -95,15 +96,15 @@ bool Socket::Read(void) {
 			}
 
 		}
+		
 		else if (ret == -1) {
 			printf("Error: %d\n", WSAGetLastError());
 			break;
 		}
 		else {
-			printf("Waited for %d seconds but timed-out due to no data", timeout.tv_sec);
+			printf("Timeout occurred. Waited for %d seconds but received no data\n", timeout.tv_sec);
 			break;
 		}
-
 	}
 	return false;
 

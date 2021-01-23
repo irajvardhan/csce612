@@ -22,10 +22,11 @@ int main(int argc, char**argv)
 		return 0;
 	}
 
-	test_urlParser();
+	//test_urlParser();
+	client();
 
-
-	//client();
+	// call cleanup when done with everything and ready to exit program
+	WSACleanup();
 
 	return 0;
 }
