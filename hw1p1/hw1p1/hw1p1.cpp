@@ -6,11 +6,16 @@
 
 using namespace std;
 
-void client(void);
+
 
 int main(int argc, char**argv)
 {
-    cout << "Starting crawler\n";
+    if (argc != 2) {
+		printf("Incorrect arguments. \nUsage: %s %s\n", argv[0], "<url>");
+		return 0;
+	}
+	
+	string url(argv[1]);
 
 	WSADATA wsaData;
 
@@ -22,12 +27,15 @@ int main(int argc, char**argv)
 		return 0;
 	}
 
+	// for unit testing
 	//test_urlParser();
-	client();
+	
+	client(url);
 
 	// call cleanup when done with everything and ready to exit program
 	WSACleanup();
 
+	printf("\n############################----x----###############################\n\n\n");
 	return 0;
 }
 

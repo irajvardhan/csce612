@@ -1,10 +1,9 @@
 #include "pch.h"
-#include "WebClient.h"
 
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
-void client(void) {
+void client(string url) {
 	// string pointing to an HTTP server (DNS name or IP)
 	
 	// variables for timing operations
@@ -19,7 +18,7 @@ void client(void) {
 	//string url = "http://allybruener.com/"; // should give 2xx 
 	//string url = "https://google.com"; // failed with invalid scheme
 	//string url = "http://xyz.com:0/"; // failed with invalid port
-	string url = "http://goopoiopoipoiopxx.com"; // 
+	//string url = "http://goopoiopoipoiopxx.com"; // 
 	const char* str = url.c_str();
 
 	printf("URL: %s\n", str);

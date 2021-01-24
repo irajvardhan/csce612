@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include "cpu.h"
 #include "DNS.h"
+#include "WebClient.h"
 #include "HTMLParserBase.h"
 #include "HttpResponseParser.h"
 #include <cstring>

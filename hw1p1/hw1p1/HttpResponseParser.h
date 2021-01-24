@@ -20,8 +20,4 @@ typedef struct httpResponse {
 class HttpResponseParser {
 public:
 	HTTPresponse parseHttpResponse(std::string recvBuf);
-	/*int getStatusCode(string recvBuf);
-	string getHTTPresponseHeader(string recvBuf);
-	string getHTTPresponseObject(string recvBuf);
-	string getHTTPresponseProtocol(string recvBuf);*/
 };

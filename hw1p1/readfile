@@ -1,0 +1,4 @@
+#!/bin/bash
+while IFS= read -r line; do
+    x64/Debug/hw1p1.exe $line
+done < "$1"
