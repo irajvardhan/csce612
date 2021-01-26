@@ -40,7 +40,7 @@ void client(string url) {
 
 	// open a TCP socket
 	if (!webSocket.Open()) {
-		printf("Error: Couldn't open socket");
+		printf("failed as couldn't open socket\n");
 		return;
 	}
 
@@ -118,7 +118,7 @@ void client(string url) {
 
 	// read from the socket
 	if (!webSocket.Read()) {
-		printf("failed with %d\n", WSAGetLastError());
+		printf("failed with %d on recv\n", WSAGetLastError());
 		// close the socket to this server; open again for the next one
 		webSocket.Close();
 		return;
@@ -133,14 +133,19 @@ void client(string url) {
 	}
 	// close the socket to this server; open again for the next one
 	webSocket.Close();
-
-	en = hrc::now();        // get end time point
-	elapsed = ELAPSED_MS(st, en);
-	printf("done in %.2f ms with %zu bytes\n", elapsed, strlen(recvBuf));
-
 	
 	HttpResponseParser httpReponseParser;
 	HTTPresponse response = httpReponseParser.parseHttpResponse(recvBuf);
+	
+	// check for invalid response
+	if (!response.isValid) {
+		printf("failed with non-HTTP header\n");
+		return;
+	}
+	
+	en = hrc::now();        // get end time point
+	elapsed = ELAPSED_MS(st, en);
+	printf("done in %.2f ms with %zu bytes\n", elapsed, strlen(recvBuf));
 
 	printf("\t  Verifying header... ");
 	printf("status code %d\n", response.statusCode);

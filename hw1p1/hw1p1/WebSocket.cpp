@@ -12,7 +12,7 @@ Socket::Socket() {
 bool Socket::Open(void) {
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (sock == INVALID_SOCKET){
-		printf("socket() generated error %d\n", WSAGetLastError());
+		//printf("socket() generated error %d\n", WSAGetLastError());
 		WSACleanup();
 		return false;
 	}
@@ -22,7 +22,7 @@ bool Socket::Open(void) {
 
 bool Socket::Connect(struct sockaddr_in server) {
 	if (connect(sock, (struct sockaddr*)&server, sizeof(struct sockaddr_in)) == SOCKET_ERROR){
-		printf("Connection error: %d\n", WSAGetLastError());
+		//printf("Connection error: %d\n", WSAGetLastError());
 		return false;
 	}
 
@@ -31,7 +31,7 @@ bool Socket::Connect(struct sockaddr_in server) {
 
 bool Socket::Send(char* sendBuf, int requestLen) {
 	if (send(sock, sendBuf, requestLen, 0) == SOCKET_ERROR) {
-		printf("Send error: %d\n", WSAGetLastError());
+		//printf("Send error: %d\n", WSAGetLastError());
 		return false;
 	}
 
@@ -66,7 +66,7 @@ bool Socket::Read(void) {
 
 			// error
 			if (bytes < 0) {
-				printf("Receive error: %d\n", WSAGetLastError());
+				//printf("Receive error: %d\n", WSAGetLastError());
 				break;
 			}
 
@@ -87,7 +87,7 @@ bool Socket::Read(void) {
 				
 				// realloc failed
 				if (tempBuf == NULL) {
-					printf("ERROR: realloc failed to increase size of buffer\n");
+					//printf("ERROR: realloc failed to increase size of buffer\n");
 					break;
 				}
 				
@@ -98,11 +98,11 @@ bool Socket::Read(void) {
 		}
 		
 		else if (ret == -1) {
-			printf("Error: %d\n", WSAGetLastError());
+			//printf("Error: %d\n", WSAGetLastError());
 			break;
 		}
 		else {
-			printf("Timeout occurred. Waited for %d seconds but received no data\n", timeout.tv_sec);
+			//printf("Timeout occurred. Waited for %d seconds but received no data\n", timeout.tv_sec);
 			break;
 		}
 	}

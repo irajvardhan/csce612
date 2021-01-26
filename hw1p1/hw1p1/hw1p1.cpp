@@ -10,7 +10,7 @@ using namespace std;
 
 int main(int argc, char**argv)
 {
-    if (argc != 2) {
+	if (argc != 2) {
 		printf("Incorrect arguments. \nUsage: %s %s\n", argv[0], "<url>");
 		return 0;
 	}
@@ -29,9 +29,8 @@ int main(int argc, char**argv)
 
 	// for unit testing
 	//test_urlParser();
-	
 	client(url);
-
+	
 	// call cleanup when done with everything and ready to exit program
 	WSACleanup();
 

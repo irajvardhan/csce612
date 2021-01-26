@@ -7,6 +7,7 @@ typedef struct httpResponse {
 	std::string object;
 	std::string protocol;
 	std::string protocolVersion;
+	bool isValid;
 
 	httpResponse() {
 		statusCode = -1;
@@ -14,6 +15,7 @@ typedef struct httpResponse {
 		object = "";
 		protocol = "";
 		protocolVersion = "";
+		isValid = false;
 	}
 }HTTPresponse;
 
