@@ -1,3 +1,7 @@
+/*
+* CSCE 612 [Spring 2021]
+* by Raj Vardhan
+*/
 #include "pch.h"
 #include "WebSocket.h"
 
@@ -39,26 +43,41 @@ bool Socket::Send(char* sendBuf, int requestLen) {
 }
 
 // read from a socket
-bool Socket::Read(void) {
+RecvOutcome Socket::Read(int maxDownloadSize) {
 	// set of socket descriptors
 	fd_set fds;
 
 	TIMEVAL timeout;
-
+	timeout.tv_sec = 10; //sec
+	timeout.tv_usec = 0; //ms
 	int ret;
+	RecvOutcome outcome;
+
+	hrc::time_point st;
+	hrc::time_point en;
+	double elapsed;
+	st = hrc::now();        // get start time point
 
 	while (true) {
-		
-		// clear set of descriptors
+		en = hrc::now();        // get end time point
+		elapsed = ELAPSED_MS(st, en);
+		if (elapsed > MAXELAPSEDTIME) {
+			printf("failed with slow download\n");
+			outcome.errorAlreadyShown = true;
+			outcome.success = false;
+			break;
+		}
+
+		// clear set of descriptors [not necessary in loop but good practice]
 		FD_ZERO(&fds);
 
-		// add socket descriptor to set
+		// add socket descriptor to set 
+		// When dealing with multiple sockets, the call to select will only leave a subset of sockets
+		// in the fd_set. So need to put all the sockets back to fds.
 		FD_SET(sock, &fds);
 		
-		timeout.tv_sec = 10; //sec
-		timeout.tv_usec = 0; //ms
-
 		// wait to see if socket has any data
+		// This is a blocking call. It returns when data is received or on timeout
 		if ((ret = select(0, &fds, NULL, NULL, &timeout)) > 0) {
 
 			// new data is available; now read the next segment
@@ -74,7 +93,8 @@ bool Socket::Read(void) {
 			if (bytes == 0) {
 				// NULL terminate the buffer
 				buf[curPos] = '\0';
-				return true;
+				outcome.success = true;
+				return outcome;
 			}
 
 			curPos += bytes;
@@ -82,6 +102,14 @@ bool Socket::Read(void) {
 			// check if we need to resize the buffer
 			if (allocatedSize - curPos < REMAINING_SPACE_THRESHOLD) {
 				//  double the allocation size
+				if (curPos >= maxDownloadSize) {
+					printf("failed with exceeding max\n");
+					outcome.errorAlreadyShown = true;
+					outcome.success = false;
+					break;
+				}
+				
+				
 				int newAllocatedSize = allocatedSize << 1; 
 				char* tempBuf = (char*)realloc(buf, newAllocatedSize);
 				
@@ -106,7 +134,7 @@ bool Socket::Read(void) {
 			break;
 		}
 	}
-	return false;
+	return outcome;
 
 
 }

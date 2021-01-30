@@ -1,3 +1,8 @@
+/*
+* CSCE 612 [Spring 2021]
+* by Raj Vardhan
+*/
+
 #include "pch.h"
 #include "HttpResponseParser.h"
 
@@ -60,8 +65,6 @@ HTTPresponse HttpResponseParser::parseHttpResponse(string recvBuf)
 	}
 
 	response.isValid = true;
-
-	printf("temp: returning\n");
 
 	return response;
 }

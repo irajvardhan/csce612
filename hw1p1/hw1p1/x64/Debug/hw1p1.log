@@ -1,13 +1,14 @@
 ﻿  pch.cpp
+  FileUtil.cpp
   HttpResponseParser.cpp
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\HttpResponseParser.cpp(57,21): warning C4101: 'msg': unreferenced local variable
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\HttpResponseParser.cpp(62,21): warning C4101: 'msg': unreferenced local variable
   hw1p1.cpp
   TestUrlParser.cpp
   URLParser.cpp
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\URLParser.cpp(87,21): warning C4101: 'msg': unreferenced local variable
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\URLParser.cpp(91,21): warning C4101: 'msg': unreferenced local variable
   webclient.cpp
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(105,46): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(168,120): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(199,46): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(269,120): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
   WebSocket.cpp
   Generating Code...
 HTMLParser_debug_x64.lib(HTMLParserBase.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(HTMLParserBase.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info

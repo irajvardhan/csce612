@@ -43,7 +43,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -138,6 +138,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -147,6 +148,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FileUtil.cpp" />
     <ClCompile Include="HttpResponseParser.cpp" />
     <ClCompile Include="hw1p1.cpp" />
     <ClCompile Include="pch.cpp">
@@ -163,6 +165,7 @@
   <ItemGroup>
     <ClInclude Include="cpu.h" />
     <ClInclude Include="DNS.h" />
+    <ClInclude Include="FileUtil.h" />
     <ClInclude Include="HTMLParserBase.h" />
     <ClInclude Include="HttpResponseParser.h" />
     <ClInclude Include="pch.h" />

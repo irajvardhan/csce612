@@ -7,20 +7,27 @@
 #ifndef PCH_H
 #define PCH_H
 
+#define KB(x)   ((size_t) (x) << 10)
+#define MB(x)   ((size_t) (x) << 20)
+
 // add headers that you want to pre-compile here
 #include <Windows.h>
 #include <iostream>
 #include <stdio.h>
 #include "cpu.h"
 #include "DNS.h"
-#include "WebClient.h"
 #include "HTMLParserBase.h"
 #include "HttpResponseParser.h"
+#include "FileUtil.h"
 #include <cstring>
 #include <time.h>
 #include <chrono>
 #include <algorithm>
-
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <unordered_set>
+#include "WebClient.h"
 
 // using chrono high_resolution_clock
 using namespace std::chrono;
