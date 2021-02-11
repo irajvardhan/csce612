@@ -62,7 +62,7 @@ RecvOutcome Socket::Read(int maxDownloadSize) {
 		en = hrc::now();        // get end time point
 		elapsed = ELAPSED_MS(st, en);
 		if (elapsed > MAXELAPSEDTIME) {
-			printf("failed with slow download\n");
+			//printf("failed with slow download\n");
 			outcome.errorAlreadyShown = true;
 			outcome.success = false;
 			break;
@@ -94,6 +94,7 @@ RecvOutcome Socket::Read(int maxDownloadSize) {
 				// NULL terminate the buffer
 				buf[curPos] = '\0';
 				outcome.success = true;
+				outcome.contentSize = curPos + 1;
 				return outcome;
 			}
 
@@ -103,7 +104,7 @@ RecvOutcome Socket::Read(int maxDownloadSize) {
 			if (allocatedSize - curPos < REMAINING_SPACE_THRESHOLD) {
 				//  double the allocation size
 				if (curPos >= maxDownloadSize) {
-					printf("failed with exceeding max\n");
+					//printf("failed with exceeding max\n");
 					outcome.errorAlreadyShown = true;
 					outcome.success = false;
 					break;
@@ -130,7 +131,9 @@ RecvOutcome Socket::Read(int maxDownloadSize) {
 			break;
 		}
 		else {
-			//printf("Timeout occurred. Waited for %d seconds but received no data\n", timeout.tv_sec);
+			//printf("failed with slow download\n");
+			outcome.errorAlreadyShown = true;
+			outcome.success = false;
 			break;
 		}
 	}

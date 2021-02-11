@@ -11,7 +11,7 @@ using namespace std;
 URL URLParser::parseURL(string url) {
 	URL urlElems;
 	try {
-		printf("\t  Parsing URL... ");
+		//printf("\t  Parsing URL... ");
 		
 		if (url.empty()) {
 			urlElems.blameInvalidOn = "url_size";

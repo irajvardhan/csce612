@@ -9,21 +9,6 @@
 #include <Windows.h>
 using namespace std;
 
-// Code reference from https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c/33486052#33486052
-bool doesFileExist(string filename) {
-	ifstream f(filename.c_str());
-	return f.good();
-}
-
-// Code reference taken from https://stackoverflow.com/questions/2912520/read-file-contents-into-a-string-in-c/2912614#2912614
-
-string readFileToString(string filename) {
-	ifstream ifs(filename);
-	string fileContent((istreambuf_iterator<char>(ifs)),
-		(istreambuf_iterator<char>()));
-	return fileContent;
-}
-
 
 string readFileToString2(string filename) {
 	// open file

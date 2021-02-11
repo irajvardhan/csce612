@@ -12,9 +12,9 @@ class WebClient {
 	static std::unordered_set<std::string> seenHosts;
 
 public:
-	void crawl(std::string url);
+	void crawl(std::string url, HTMLParserBase* parser, StatsManager& statsManager);
 	bool connectAndProcess(std::string type, struct sockaddr_in server, URL urlElems, 
-		std::string request, std::string httpMethod, int minAllowedStatusCode, int maxAllowedStatusCode, int maxDownloadSize);
+		std::string request, std::string httpMethod, int minAllowedStatusCode, int maxAllowedStatusCode, int maxDownloadSize, HTMLParserBase* parser, StatsManager& statsManager);
 	static bool isIPunique(DWORD ip);
 	static bool isHostUnique(std::string host);
 	static void addIPtoSeen(DWORD ip);

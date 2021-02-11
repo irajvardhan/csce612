@@ -14,11 +14,17 @@
 #include <Windows.h>
 #include <iostream>
 #include <stdio.h>
+#include <thread>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 #include "cpu.h"
 #include "DNS.h"
 #include "HTMLParserBase.h"
 #include "HttpResponseParser.h"
 #include "FileUtil.h"
+#include "StatsManager.h"
+#include "ThreadManager.h"
 #include <cstring>
 #include <time.h>
 #include <chrono>
@@ -28,6 +34,8 @@
 #include <sstream>
 #include <unordered_set>
 #include "WebClient.h"
+
+
 
 // using chrono high_resolution_clock
 using namespace std::chrono;

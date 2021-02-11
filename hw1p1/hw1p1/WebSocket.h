@@ -11,6 +11,7 @@
 typedef struct recvOutcome {
 	bool errorAlreadyShown;
 	bool success;
+	int contentSize;
 
 	recvOutcome() {
 		errorAlreadyShown = false;
