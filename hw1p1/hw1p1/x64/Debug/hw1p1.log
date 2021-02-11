@@ -1,5 +1,1 @@
-﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(491,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (csce612hw.vcxproj).  This can lead to incorrect clean and rebuild behavior.
-  main.cpp
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\main.cpp(34,13): warning C4101: 'client': unreferenced local variable
-C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\main.cpp(53,28): warning C4101: 'ex': unreferenced local variable
-  hw1p1.vcxproj -> C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\hw1p1.exe
+﻿

@@ -20,6 +20,7 @@ public:
 	L: total links found
 	*/
 	std::atomic<int> q, e, h, d, i, r, c, l;
+	std::atomic<int> numRobotBytes, numPageBytes;
 	
 	
 	StatsManager();
@@ -33,5 +34,7 @@ public:
 	void incrementURLsWhichPassedRobotCheck();
 	void incrementURLsWithValidHTTPcode();
 	void incrementLinksFound(int numLinks);
+	void incrementNumRobotBytes(int bytes);
+	void incrementNumPageBytes(int bytes);
 	
 };

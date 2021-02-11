@@ -254,8 +254,16 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 	//printf("\t  Verifying header... ");
 	//printf("status code %d\n", response.statusCode);
 
+	// TODO may need to move this below after statusCode check
+	int numBytes = strlen(recvBuf);
+	if (type == "robot") {
+		statsManager.incrementNumRobotBytes(numBytes);
+	}
+	else {
+		statsManager.incrementNumPageBytes(numBytes);
+	}
 	
-	// status code in acceotable range
+	// status code in acceptable range
 	if (response.statusCode >= minAllowedStatusCode && response.statusCode <= maxAllowedStatusCode) {
 		if (type == "robot") {
 			return true;

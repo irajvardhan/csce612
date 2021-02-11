@@ -83,10 +83,19 @@ void showStats() {
 
 	hrc::time_point st;
 	hrc::time_point en;
-	int elapsed;
+	hrc::time_point prevTime;
+
+	// how much time has elapsed (in seconds) since the last wakeup
+	double elapsedSinceLastWakeup;
+
+	// how much time has elapsed (in seconds) since the start 
+	int elapsedSinceStart;
 
 	st = hrc::now();        // get start time point
+	prevTime = st;
 
+	int numPagesDownloadedPrev = 0;
+	int numBytesDownloadedPrev = 0;
 
 	while (true) {
 
@@ -97,18 +106,24 @@ void showStats() {
 
 		this_thread::sleep_for(chrono::seconds(2));
 
+		int pagesDownloadedTillNow = int(statsManager.c);
+		int bytesDownloadedTillNow = int(statsManager.numRobotBytes) + int(statsManager.numPageBytes);
 		en = hrc::now();        // get end time point
-		elapsed = (int)(ELAPSED_MS(st, en) / 1000); // in seconds
-		int links = int(statsManager.l);
-		string linkText = "";
-		if (links >= 1000) {
-			linkText = to_string(links / 1000);
-			linkText += "K";
-		}
-		else {
-			linkText = to_string(links);
-		}
-		printf("[%3d] %6d Q %7d E %6d H %6d D %5d I %5d R %5d C %4s L\n", elapsed, int(statsManager.q), int(statsManager.e), int(statsManager.h), int(statsManager.d), int(statsManager.i), int(statsManager.r), int(statsManager.c), linkText.c_str());
+		elapsedSinceStart = (int)(ELAPSED_MS(st, en) / 1000); // in seconds
+
+		elapsedSinceLastWakeup = ELAPSED_MS(prevTime, en) / 1000; // in seconds
+		prevTime = en;
+
+		printf("[%3d] %7d Q %6d E %7d H %6d D %6d I %5d R %5d C %5d L %4dK\n", elapsedSinceStart, int(ThreadManager::sharedQ.size()), int(statsManager.q), int(statsManager.e), int(statsManager.h), int(statsManager.d), int(statsManager.i), int(statsManager.r), int(statsManager.c), int(statsManager.l/1000));
+		
+		int pagesDownloadedSinceLastWakeup = pagesDownloadedTillNow - numPagesDownloadedPrev;
+		numPagesDownloadedPrev = pagesDownloadedTillNow;
+		double crawlSpeedSinceLastWakeup = pagesDownloadedSinceLastWakeup / elapsedSinceLastWakeup;
+
+		int bytesDownloadedSinceLastWakeup = bytesDownloadedTillNow - numBytesDownloadedPrev;
+		numBytesDownloadedPrev = bytesDownloadedTillNow;
+		double bandwidthSinceLastWakeup = (numBytesDownloadedPrev * 8) / (1000000 * elapsedSinceLastWakeup);
+		printf("*** crawling %.1f pps @ %.1f Mbps\n", crawlSpeedSinceLastWakeup, bandwidthSinceLastWakeup);
 	}
 }
 

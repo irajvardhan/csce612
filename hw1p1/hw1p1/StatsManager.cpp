@@ -10,6 +10,9 @@ StatsManager::StatsManager()
 	r = 0;
 	c = 0;
 	l = 0;
+
+	numRobotBytes = 0;
+	numPageBytes = 0;
 }
 
 void StatsManager::incrementActiveThreads()
@@ -55,4 +58,14 @@ void StatsManager::incrementURLsWithValidHTTPcode()
 void StatsManager::incrementLinksFound(int numLinks)
 {
 	l += numLinks;
+}
+
+void StatsManager::incrementNumRobotBytes(int bytes)
+{
+	numRobotBytes += bytes;
+}
+
+void StatsManager::incrementNumPageBytes(int bytes)
+{
+	numPageBytes += bytes;
 }
