@@ -1,1 +1,25 @@
-﻿
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(491,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (csce612hw.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  pch.cpp
+  FileUtil.cpp
+  HttpResponseParser.cpp
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\HttpResponseParser.cpp(62,21): warning C4101: 'msg': unreferenced local variable
+  main.cpp
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\main.cpp(34,13): warning C4101: 'client': unreferenced local variable
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\main.cpp(53,28): warning C4101: 'ex': unreferenced local variable
+  StatsManager.cpp
+  TestUrlParser.cpp
+  ThreadManager.cpp
+  URLParser.cpp
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\URLParser.cpp(91,21): warning C4101: 'msg': unreferenced local variable
+  webclient.cpp
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(205,46): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(258,32): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\raj\Documents\github\csce612\hw1p1\hw1p1\webclient.cpp(285,120): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+  WebSocket.cpp
+  Generating Code...
+HTMLParser_debug_x64.lib(HTMLParserBase.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(HTMLParserBase.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+HTMLParser_debug_x64.lib(IRLBuffer.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(IRLBuffer.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+HTMLParser_debug_x64.lib(IRLparser.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(IRLparser.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+HTMLParser_debug_x64.lib(stdafx.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(stdafx.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+HTMLParser_debug_x64.lib(URL.obj) : warning LNK4099: PDB 'HTMLParser.pdb' was not found with 'HTMLParser_debug_x64.lib(URL.obj)' or at 'C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\HTMLParser.pdb'; linking object as if no debug info
+  hw1p1.vcxproj -> C:\Users\raj\Documents\github\csce612\hw1p1\x64\Debug\hw1p1.exe

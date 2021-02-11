@@ -14,31 +14,6 @@ StatsManager statsManager;
 
 /*Mutex Declarations*/
 mutex mutex_q;		// mutex on the shared queue
-bool productionOver = false;
-
-void produce(string content) {
-	istringstream contentStream(content);
-	string line;
-	while (getline(contentStream, line)) {
-		if (line.empty())
-			continue;
-		//this_thread::sleep_for(chrono::seconds(3));
-		// create a scope for this synchronized operation after which lock will be cleared
-		{
-			lock_guard<mutex> lck(mutex_q);
-			ThreadManager::sharedQ.push(line);
-		}
-		
-		cond_var.notify_one(); //TODO check if we have to do notify_one()/notify_all() here
-	}
-
-	// We are done pushing all URLs to queue. Now lets wakeup any waiting consumers so they can end themselves.
-	{
-		lock_guard<mutex> lck(mutex_q);
-		productionOver = true;
-	}
-	cond_var.notify_all();
-}
 
 void consume() {
 
@@ -48,20 +23,12 @@ void consume() {
 	while (true) {
 		// define a scope
 		{
-			unique_lock<mutex> lck(mutex_q);
-			if (ThreadManager::sharedQ.empty() and productionOver) {
+			//unique_lock<mutex> lck(mutex_q);
+			lock_guard<mutex> lck(mutex_q);
+			
+			if (ThreadManager::sharedQ.empty()) {
 				break; // we are done
 			}
-
-			else if (ThreadManager::sharedQ.empty()) {
-				continue;
-				// TODO we can sleep for few seconds as well.
-			}
-
-			// Reaching here means we have something in the queue to consume.
-
-			// wait until either there is something in the queue or production is completed
-			cond_var.wait(lck, [] {return ThreadManager::sharedQ.size() > 0 || productionOver == true; });
 
 			string line = ThreadManager::sharedQ.front();
 			ThreadManager::sharedQ.pop();
@@ -99,8 +66,8 @@ void showStats() {
 
 	while (true) {
 
-		// check if producer and consumers have stopped operation
-		if (productionOver && (statsManager.q == 0)) {
+		// check if queue has become empty
+		if (ThreadManager::sharedQ.size()==0) {
 			break;
 		}
 
@@ -129,8 +96,14 @@ void showStats() {
 
 void ThreadManager::initProducerConsumer(string content, int numThreads)
 {
-	// producer thread that reads URLs and feeds to a shared queue
-	thread producerThread(produce, content);
+	// producer [main thread] reads URLs and feeds to a shared queue
+	istringstream contentStream(content);
+	string line;
+	while (getline(contentStream, line)) {
+		if (line.empty())
+			continue;
+		ThreadManager::sharedQ.push(line);
+	}
 
 	// start the stats thread that shows statistics
 	thread statsManagerThread(showStats);
@@ -143,10 +116,6 @@ void ThreadManager::initProducerConsumer(string content, int numThreads)
 		++i;
 	}
 
-	if (producerThread.joinable()) {
-		producerThread.join();
-	}
-	
 	i = 0;
 	while (i < numThreads) {
 		if (consumerThreads[i].joinable()) {
