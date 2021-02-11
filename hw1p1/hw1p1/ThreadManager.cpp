@@ -21,23 +21,23 @@ void consume() {
 	statsManager.incrementActiveThreads();
 	HTMLParserBase* parser = new HTMLParserBase;
 	while (true) {
+		string line;
 		// define a scope
 		{
-			//unique_lock<mutex> lck(mutex_q);
 			lock_guard<mutex> lck(mutex_q);
 			
 			if (ThreadManager::sharedQ.empty()) {
 				break; // we are done
 			}
 
-			string line = ThreadManager::sharedQ.front();
+			line = ThreadManager::sharedQ.front();
 			ThreadManager::sharedQ.pop();
-			
-			statsManager.incrementExtractedURLs();
-
-			WebClient client;
-			client.crawl(line, parser, statsManager);
 		}
+		
+		statsManager.incrementExtractedURLs();
+		//printf()
+		WebClient client;
+		client.crawl(line, parser, statsManager);
 	}
 	
 	delete(parser);
@@ -67,8 +67,9 @@ void showStats() {
 	while (true) {
 
 		// check if queue has become empty
+		// TODO put an event here
 		if (ThreadManager::sharedQ.size()==0) {
-			break;
+			//break;
 		}
 
 		this_thread::sleep_for(chrono::seconds(2));
@@ -81,16 +82,18 @@ void showStats() {
 		elapsedSinceLastWakeup = ELAPSED_MS(prevTime, en) / 1000; // in seconds
 		prevTime = en;
 
-		printf("[%3d] %7d Q %6d E %7d H %6d D %6d I %5d R %5d C %5d L %4dK\n", elapsedSinceStart, int(ThreadManager::sharedQ.size()), int(statsManager.q), int(statsManager.e), int(statsManager.h), int(statsManager.d), int(statsManager.i), int(statsManager.r), int(statsManager.c), int(statsManager.l/1000));
+		printf("[%3d] %7d Q %6d E %7d H %6d D %6d I %5d R %5d C %5d L %4dK\n", elapsedSinceStart, int(statsManager.q), int(ThreadManager::sharedQ.size()), int(statsManager.e), int(statsManager.h), int(statsManager.d), int(statsManager.i), int(statsManager.r), int(statsManager.c), int(statsManager.l/1000));
 		
 		int pagesDownloadedSinceLastWakeup = pagesDownloadedTillNow - numPagesDownloadedPrev;
 		numPagesDownloadedPrev = pagesDownloadedTillNow;
 		double crawlSpeedSinceLastWakeup = pagesDownloadedSinceLastWakeup / elapsedSinceLastWakeup;
 
 		int bytesDownloadedSinceLastWakeup = bytesDownloadedTillNow - numBytesDownloadedPrev;
+		printf("prev: %d now: %d elapsed: %f\n", numBytesDownloadedPrev, bytesDownloadedTillNow, elapsedSinceLastWakeup);
 		numBytesDownloadedPrev = bytesDownloadedTillNow;
-		double bandwidthSinceLastWakeup = (numBytesDownloadedPrev * 8) / (1000000 * elapsedSinceLastWakeup);
+		double bandwidthSinceLastWakeup = double((bytesDownloadedSinceLastWakeup * 8) / (1000000 * elapsedSinceLastWakeup));
 		printf("*** crawling %.1f pps @ %.1f Mbps\n", crawlSpeedSinceLastWakeup, bandwidthSinceLastWakeup);
+		
 	}
 }
 

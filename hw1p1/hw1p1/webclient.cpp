@@ -8,45 +8,64 @@
 
 using namespace std;
 
+mutex mutex_host;
+mutex mutex_ip;
+
 std::unordered_set<DWORD> WebClient::seenIPs{};
 std::unordered_set<std::string> WebClient::seenHosts{};
 
 bool WebClient::isIPunique(DWORD ip)
 {
-	unordered_set<DWORD>::const_iterator it = seenIPs.find(ip);
+	{
+		lock_guard<mutex> lck(mutex_ip);
 
-	if (it == seenIPs.end()) {
-		// not found => yes its unique
-		return true;
+		unordered_set<DWORD>::const_iterator it = seenIPs.find(ip);
+
+		if (it == seenIPs.end()) {
+			// not found => yes its unique
+			return true;
+		}
+		else {
+			// found => not unique
+			return false;
+		}
 	}
-	else {
-		// found => not unique
-		return false;
-	}
+	
 }
 
 bool WebClient::isHostUnique(string host)
 {
-	unordered_set<string>::const_iterator it = seenHosts.find(host);
+	{
+		lock_guard<mutex> lck(mutex_host);
+		unordered_set<string>::const_iterator it = seenHosts.find(host);
 
-	if (it == seenHosts.end()) {
-		// not found => unique
-		return true;
+		if (it == seenHosts.end()) {
+			// not found => unique
+			return true;
+		}
+		else {
+			// found
+			return false;
+		}
 	}
-	else {
-		// found
-		return false;
-	}
+	
 }
 
 void WebClient::addIPtoSeen(DWORD ip)
 {
-	seenIPs.insert(ip);
+	{
+		lock_guard<mutex> lck(mutex_ip);
+		seenIPs.insert(ip);
+	}
 }
 
 void WebClient::addHostToSeen(string host)
 {
-	seenHosts.insert(host);
+	{
+		lock_guard<mutex> lck(mutex_host);
+		seenHosts.insert(host);
+	}
+	
 }
 
 
@@ -77,6 +96,8 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 		return;
 	}
 
+	
+
 	//printf("host %s, port %d\n", urlElems.host.c_str(), urlElems.port);
 
 
@@ -88,6 +109,8 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 	statsManager.incrementURLsWithUniqueHost();
 	//printf("passed\n");
 	addHostToSeen(urlElems.host);
+	
+	
 
 	// structure used in DNS lookups
 	struct hostent* remote;
@@ -122,6 +145,8 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 	//printf("done in %.2f ms, found %s\n", elapsed, inet_ntoa(server.sin_addr));
 	statsManager.incrementSuccessfulDNSLookups();
 	
+	
+
 	//printf("\t  Checking IP uniqueness...");
 	string ipaddress(inet_ntoa(server.sin_addr));
 	DWORD ip_dw = inet_addr(ipaddress.c_str());
@@ -133,7 +158,7 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 	addIPtoSeen(ip_dw);
 	statsManager.incrementURLsWithUniqueIP();
 	//printf("passed\n");
-
+	
 	// setup the port # and protocol type
 	server.sin_family = AF_INET;
 	// host-to-network flips the byte order
@@ -149,6 +174,8 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 	}
 	statsManager.incrementURLsWhichPassedRobotCheck();
 
+	
+
 	request = urlElems.path;
 	if (!urlElems.query.empty()) {
 		request = request + "?" + urlElems.query;
@@ -156,6 +183,7 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 	httpMethod = "GET";
 	type = "page";
 	maxDownloadSize = MB(2);
+	
 	connectAndProcess(type, server, urlElems, request, httpMethod, 200, 299, maxDownloadSize, parser, statsManager);
 
 }
@@ -261,6 +289,7 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 	}
 	else {
 		statsManager.incrementNumPageBytes(numBytes);
+		statsManager.incrementURLsWithValidHTTPcode();
 	}
 	
 	// status code in acceptable range
@@ -268,7 +297,7 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 		if (type == "robot") {
 			return true;
 		}
-		statsManager.incrementURLsWithValidHTTPcode();
+		
 		
 		//printf("\t+ Parsing page... ");
 		st = hrc::now();        // get start time point		

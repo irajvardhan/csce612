@@ -33,7 +33,7 @@ int main(int argc, char**argv)
 		string url(argv[1]);
 		WebClient client;
 		//client.crawl(url);
-		printf("\n############################----x----###############################\n\n\n");
+		//printf("\n############################----x----###############################\n\n\n");
 	} else if(argc == 3) {
 		
 		// check if number of threads is valid
@@ -79,7 +79,7 @@ int main(int argc, char**argv)
 	// call cleanup when done with everything and ready to exit program
 	WSACleanup();
 
-	printf("\n############################----x----###############################\n\n\n");
+	//printf("\n############################----x----###############################\n\n\n");
 	return 0;
 }
 
