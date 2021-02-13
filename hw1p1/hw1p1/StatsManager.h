@@ -21,8 +21,10 @@ public:
 	*/
 	std::atomic<int> q, e, h, d, i, r, c, l;
 	std::atomic<int> numRobotBytes, numPageBytes;
-	
-	
+	std::atomic<int> numCode2xx, numCode3xx, numCode4xx, numCode5xx, numCodeOther;
+	std::atomic<int> duplicateHosts, numRobotReqFail;
+
+
 	StatsManager();
 
 	void incrementActiveThreads();
@@ -36,5 +38,12 @@ public:
 	void incrementLinksFound(int numLinks);
 	void incrementNumRobotBytes(int bytes);
 	void incrementNumPageBytes(int bytes);
-	
+	void incrementNumCode2xx();
+	void incrementNumCode3xx();
+	void incrementNumCode4xx();
+	void incrementNumCode5xx();
+	void incrementNumCodeOther();
+
+	void incrementDuplicateHosts();
+	void incrementRobotReqFail();
 };

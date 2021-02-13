@@ -47,7 +47,7 @@ void consume() {
 }
 
 void showStats() {
-
+	//return; // remove this
 	hrc::time_point st;
 	hrc::time_point en;
 	hrc::time_point prevTime;
@@ -63,16 +63,23 @@ void showStats() {
 
 	int numPagesDownloadedPrev = 0;
 	int numBytesDownloadedPrev = 0;
+	bool allOver = false;
 
 	while (true) {
+
+		this_thread::sleep_for(chrono::seconds(2));
 
 		// check if queue has become empty
 		// TODO put an event here
 		if (ThreadManager::sharedQ.size()==0) {
-			//break;
+			if (statsManager.q == 0 && allOver) {
+				break;
+			}
+			else if(statsManager.q == 0) {
+				// this essentially prints the local stats one final time.
+				allOver = true;
+			}
 		}
-
-		this_thread::sleep_for(chrono::seconds(2));
 
 		int pagesDownloadedTillNow = int(statsManager.c);
 		int bytesDownloadedTillNow = int(statsManager.numRobotBytes) + int(statsManager.numPageBytes);
@@ -89,12 +96,35 @@ void showStats() {
 		double crawlSpeedSinceLastWakeup = pagesDownloadedSinceLastWakeup / elapsedSinceLastWakeup;
 
 		int bytesDownloadedSinceLastWakeup = bytesDownloadedTillNow - numBytesDownloadedPrev;
-		printf("prev: %d now: %d elapsed: %f\n", numBytesDownloadedPrev, bytesDownloadedTillNow, elapsedSinceLastWakeup);
 		numBytesDownloadedPrev = bytesDownloadedTillNow;
 		double bandwidthSinceLastWakeup = double((bytesDownloadedSinceLastWakeup * 8) / (1000000 * elapsedSinceLastWakeup));
 		printf("*** crawling %.1f pps @ %.1f Mbps\n", crawlSpeedSinceLastWakeup, bandwidthSinceLastWakeup);
 		
 	}
+	en = hrc::now();        // get end time point
+	elapsedSinceStart = (int)(ELAPSED_MS(st, en) / 1000); // in seconds
+	double rate = statsManager.e / elapsedSinceStart;
+	printf("Extracted %d URLs @ %.2f/s\n", int(statsManager.e), rate);
+	
+	rate = int(statsManager.h) / elapsedSinceStart;
+	printf("Looked up %d DNS names @ %.2f/s\n", int(statsManager.h), rate);
+	
+	// remove this
+	//printf("Duplicate hosts: %d\n", int(statsManager.duplicateHosts));
+	//printf("Number of failed Robot requests: %d\n", int(statsManager.numRobotReqFail));
+	
+	rate = int(statsManager.i) / elapsedSinceStart;
+	printf("Downloaded %d robots @ %.2f/s\n", int(statsManager.i), rate);
+
+	rate = int(statsManager.c) / elapsedSinceStart;
+	double downloadedMB = statsManager.numPageBytes/(1024*1024);
+	printf("Crawled %d pages @ %.2f/s (%.2fMB)\n", int(statsManager.c), rate, downloadedMB);
+	
+	rate = int(statsManager.l) / elapsedSinceStart;
+	printf("Parsed %d links @%.2f/s\n", int(statsManager.l), rate);
+
+	printf("HTTP codes: 2xx = %d, 3xx = %d, 4xx = %d, 5xx = %d, other = %d\n", int(statsManager.numCode2xx), int(statsManager.numCode3xx), int(statsManager.numCode4xx), int(statsManager.numCode5xx), int(statsManager.numCodeOther));
+
 }
 
 void ThreadManager::initProducerConsumer(string content, int numThreads)
@@ -105,7 +135,10 @@ void ThreadManager::initProducerConsumer(string content, int numThreads)
 	while (getline(contentStream, line)) {
 		if (line.empty())
 			continue;
-		ThreadManager::sharedQ.push(line);
+		stringstream ss(line);
+		std::string trimmed_line;
+		ss >> trimmed_line;
+		ThreadManager::sharedQ.push(trimmed_line);
 	}
 
 	// start the stats thread that shows statistics

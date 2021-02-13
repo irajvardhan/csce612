@@ -10,60 +10,25 @@ using namespace std;
 
 mutex mutex_host;
 mutex mutex_ip;
+mutex mutex_print;
 
 std::unordered_set<DWORD> WebClient::seenIPs{};
 std::unordered_set<std::string> WebClient::seenHosts{};
 
-bool WebClient::isIPunique(DWORD ip)
+
+pair<unordered_set<DWORD>::iterator, bool> WebClient::addIPtoSeen(DWORD ip)
 {
 	{
 		lock_guard<mutex> lck(mutex_ip);
-
-		unordered_set<DWORD>::const_iterator it = seenIPs.find(ip);
-
-		if (it == seenIPs.end()) {
-			// not found => yes its unique
-			return true;
-		}
-		else {
-			// found => not unique
-			return false;
-		}
+		return seenIPs.insert(ip);
 	}
-	
 }
 
-bool WebClient::isHostUnique(string host)
+pair<unordered_set<string>::iterator, bool>  WebClient::addHostToSeen(string host)
 {
 	{
 		lock_guard<mutex> lck(mutex_host);
-		unordered_set<string>::const_iterator it = seenHosts.find(host);
-
-		if (it == seenHosts.end()) {
-			// not found => unique
-			return true;
-		}
-		else {
-			// found
-			return false;
-		}
-	}
-	
-}
-
-void WebClient::addIPtoSeen(DWORD ip)
-{
-	{
-		lock_guard<mutex> lck(mutex_ip);
-		seenIPs.insert(ip);
-	}
-}
-
-void WebClient::addHostToSeen(string host)
-{
-	{
-		lock_guard<mutex> lck(mutex_host);
-		seenHosts.insert(host);
+		return seenHosts.insert(host);
 	}
 	
 }
@@ -86,7 +51,7 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 	//string url = "http://xyz.com:0/"; // failed with invalid port
 	//string url = "http://goopoiopoipoiopxx.com"; // 
 	const char* str = url.c_str();
-
+	string urlCopy = url;
 	//printf("URL: %s\n", str);
 
 	URLParser urlParser;
@@ -95,22 +60,24 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 		//printf("failed with invalid %s\n", urlElems.blameInvalidOn.c_str());
 		return;
 	}
-
 	
-
+	/*if (urlElems.host.empty()) {
+		printf("Something went wrong\n");
+	}*/
 	//printf("host %s, port %d\n", urlElems.host.c_str(), urlElems.port);
 
-
 	//printf("\t  Checking host uniqueness...");
-	if (!isHostUnique(urlElems.host)) {
+	pair<unordered_set<string>::iterator, bool> resultHost = addHostToSeen(urlElems.host);
+	//printf("%s\t%d\n", urlElems.host.c_str(), resultHost.second);
+	if (!resultHost.second) {
 		//printf("failed.\n");
+		statsManager.incrementDuplicateHosts();
 		return;
 	}
 	statsManager.incrementURLsWithUniqueHost();
 	//printf("passed\n");
-	addHostToSeen(urlElems.host);
-	
-	
+
+	//return;//remove this
 
 	// structure used in DNS lookups
 	struct hostent* remote;
@@ -144,18 +111,15 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 	elapsed = ELAPSED_MS(st, en);
 	//printf("done in %.2f ms, found %s\n", elapsed, inet_ntoa(server.sin_addr));
 	statsManager.incrementSuccessfulDNSLookups();
-	
-	
 
 	//printf("\t  Checking IP uniqueness...");
 	string ipaddress(inet_ntoa(server.sin_addr));
 	DWORD ip_dw = inet_addr(ipaddress.c_str());
-	bool ipUnique = isIPunique(ip_dw);
-	if (!ipUnique) {
+	pair<unordered_set<DWORD>::iterator, bool> resultIP = addIPtoSeen(ip_dw);
+	if (!resultIP.second) {
 		//printf("failed\n");
 		return;
 	}
-	addIPtoSeen(ip_dw);
 	statsManager.incrementURLsWithUniqueIP();
 	//printf("passed\n");
 	
@@ -169,12 +133,24 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 	string httpMethod = "HEAD";
 	string type = "robot";
 	int maxDownloadSize = KB(16);
+	
+	
+	
 	if (!connectAndProcess(type, server, urlElems, request, httpMethod, 400, 499, maxDownloadSize, parser, statsManager)) {
+		statsManager.incrementRobotReqFail();
+		{//remove this
+			lock_guard<mutex> lck(mutex_print);
+			//printf("%s\t%d\t%d\n", urlElems.host.c_str(), urlElems.statusCode, urlElems.errorCode); //remove this
+			this_thread::sleep_for(chrono::milliseconds(1));
+		}
 		return;
 	}
+	{//remove this
+		lock_guard<mutex> lck(mutex_print);
+		//printf("%s\t%d\n", urlElems.host.c_str(), urlElems.statusCode); //remove this
+		this_thread::sleep_for(chrono::milliseconds(1));
+	}
 	statsManager.incrementURLsWhichPassedRobotCheck();
-
-	
 
 	request = urlElems.path;
 	if (!urlElems.query.empty()) {
@@ -189,7 +165,7 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 }
 
 bool WebClient::connectAndProcess(string type, struct sockaddr_in server, 
-	URL urlElems, string request, string httpMethod, int minAllowedStatusCode, int maxAllowedStatusCode, int maxDownloadSize, HTMLParserBase* parser, StatsManager& statsManager)
+	URL& urlElems, string request, string httpMethod, int minAllowedStatusCode, int maxAllowedStatusCode, int maxDownloadSize, HTMLParserBase* parser, StatsManager& statsManager)
 {
 	hrc::time_point st;
 	hrc::time_point en;
@@ -200,33 +176,34 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 	// open a TCP socket
 	if (!webSocket.Open()) {
 		//printf("failed as couldn't open socket\n");
+		urlElems.statusCode = -2;
+		urlElems.errorCode = WSAGetLastError();
 		return false;
 	}
 
 	// connect to the server on the specified or default port
-	if (type == "robot") {
+	/*if (type == "robot") {
 		//printf("\t  Connecting on %s... ", type.c_str());
 	}
 	else {
 		//printf("\t* Connecting on %s... ", type.c_str());
-	}
+	}*/
 	
 	st = hrc::now();        // get start time point
 	if (!webSocket.Connect(server)) {
 		//printf("failed with %d\n", WSAGetLastError());
 		// close the socket to this server; open again for the next one
+		urlElems.statusCode = -3;
+		urlElems.errorCode = WSAGetLastError();
 		webSocket.Close();
 		return false;
 	}
 	en = hrc::now();        // get end time point
 	elapsed = ELAPSED_MS(st, en);
 	//printf("done in %.2f ms\n", elapsed);
-
 	//printf("Successfully connected to %s (%s) on port %d\n", str, inet_ntoa(server.sin_addr), ntohs(server.sin_port));
 
 	// send HTTP requests here
-	// string host = "www.google.com";
-	//string httpRequest = "GET " + request + " HTTP/1.0\r\n" + "User-agent: rajcrawler/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n";
 	string httpRequest = httpMethod + " " + request + " HTTP/1.0\r\n" + "Host: " + urlElems.host + "\r\n" + "User-agent: rajcrawler/1.1\r\n" + "Connection: close\r\n\r\n";
 
 	//cout << "Sending http request:\n" << httpRequest << endl;
@@ -240,6 +217,8 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 	if (!webSocket.Send(sendBuf, requestLen)) {
 		//printf("failed with %d\n", WSAGetLastError());
 		// close the socket to this server; open again for the next one
+		urlElems.statusCode = -4;
+		urlElems.errorCode = WSAGetLastError();
 		webSocket.Close();
 		return false;
 	}
@@ -251,6 +230,8 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 			//printf("failed with %d on recv\n", WSAGetLastError());
 		}
 		// close the socket to this server; open again for the next one
+		urlElems.statusCode = -5;
+		urlElems.errorCode = WSAGetLastError();
 		webSocket.Close();
 		return false;
 	}
@@ -259,6 +240,8 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 	if (recvBuf == NULL) {
 		//printf("failed as no data found in buffer\n");
 		// close the socket to this server; open again for the next one
+		urlElems.statusCode = -6;
+		urlElems.errorCode = WSAGetLastError();
 		webSocket.Close();
 		return false;
 	}
@@ -271,18 +254,15 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 	// check for invalid response
 	if (!response.isValid) {
 		//printf("failed with non-HTTP header\n");
+		urlElems.statusCode = -7;
+		urlElems.errorCode = WSAGetLastError();
 		return false;
 	}
 
 	en = hrc::now();        // get end time point
 	elapsed = ELAPSED_MS(st, en);
 	//printf("done in %.2f ms with %zu bytes\n", elapsed, strlen(recvBuf));
-	//printf("\t  temp- size of buffer is %d bytes\n", outcome.contentSize);
-
-	//printf("\t  Verifying header... ");
-	//printf("status code %d\n", response.statusCode);
-
-	// TODO may need to move this below after statusCode check
+	
 	int numBytes = strlen(recvBuf);
 	if (type == "robot") {
 		statsManager.incrementNumRobotBytes(numBytes);
@@ -292,13 +272,18 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 		statsManager.incrementURLsWithValidHTTPcode();
 	}
 	
+	if (type == "robot") { //remove this
+		urlElems.statusCode = response.statusCode;
+	}
+
 	// status code in acceptable range
 	if (response.statusCode >= minAllowedStatusCode && response.statusCode <= maxAllowedStatusCode) {
 		if (type == "robot") {
 			return true;
 		}
 		
-		
+		statsManager.incrementNumCode2xx();
+
 		//printf("\t+ Parsing page... ");
 		st = hrc::now();        // get start time point		
 		// create new parser object
@@ -307,7 +292,14 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 		char* responseObjStr = new char[response.object.length() + 1];
 		strcpy_s(responseObjStr, response.object.length() + 1, response.object.c_str());
 
-		string baseUrl = "http://www." + urlElems.host;
+		string baseUrl;
+		if (urlElems.host.substr(0, 4).compare("www.") == 0) {
+			baseUrl = "http://" + urlElems.host;
+		}
+		else {
+			baseUrl = "http://www." + urlElems.host;
+		}
+		
 		char* baseUrlstr = new char[baseUrl.length() + 1];
 		strcpy_s(baseUrlstr, baseUrl.length() + 1, baseUrl.c_str());
 
@@ -324,6 +316,20 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 	}
 	else if (type == "robot") {
 		return false;
+	}
+	else {
+		if (response.statusCode >= 300 and response.statusCode <= 399) {
+			statsManager.incrementNumCode3xx();
+		}
+		else if (response.statusCode >= 400 and response.statusCode <= 499) {
+			statsManager.incrementNumCode4xx();
+		}
+		else if (response.statusCode >= 500 and response.statusCode <= 599) {
+			statsManager.incrementNumCode5xx();
+		}
+		else {
+			statsManager.incrementNumCodeOther();
+		}
 	}
 
 	//printf("----------------------------------------\n");

@@ -5,6 +5,8 @@
 #include "pch.h"
 #include "WebSocket.h"
 
+std::mutex mutex_sock;
+
 Socket::Socket() {
 	buf = (char*) malloc(INITIAL_BUF_SIZE);
 	allocatedSize = INITIAL_BUF_SIZE;
@@ -14,18 +16,21 @@ Socket::Socket() {
 
 // open a TCP socket
 bool Socket::Open(void) {
+	
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (sock == INVALID_SOCKET){
+	
+
+	if (sock == INVALID_SOCKET) {
 		//printf("socket() generated error %d\n", WSAGetLastError());
-		WSACleanup();
+		//WSACleanup();
 		return false;
 	}
-
 	return true;
 }
 
 bool Socket::Connect(struct sockaddr_in server) {
-	if (connect(sock, (struct sockaddr*)&server, sizeof(struct sockaddr_in)) == SOCKET_ERROR){
+	
+	if (connect(sock, (struct sockaddr*)&server, sizeof(struct sockaddr_in)) == SOCKET_ERROR) {
 		//printf("Connection error: %d\n", WSAGetLastError());
 		return false;
 	}
@@ -144,6 +149,7 @@ RecvOutcome Socket::Read(int maxDownloadSize) {
 
 void Socket::Close(void) {
 	closesocket(sock);
+	//WSACleanup();
 }
 
 char* Socket::GetBufferData() {

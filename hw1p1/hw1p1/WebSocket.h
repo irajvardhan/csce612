@@ -8,6 +8,9 @@
 #define REMAINING_SPACE_THRESHOLD 1024
 #define MAXELAPSEDTIME 10000 //ms
 
+#include"pch.h"
+#include<mutex>
+
 typedef struct recvOutcome {
 	bool errorAlreadyShown;
 	bool success;

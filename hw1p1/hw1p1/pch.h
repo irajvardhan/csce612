@@ -10,6 +10,11 @@
 #define KB(x)   ((size_t) (x) << 10)
 #define MB(x)   ((size_t) (x) << 20)
 
+
+#define CRAWLER_MAX_HOST_LEN		256
+#define CRAWLER_MAX_URL_LEN			2048
+#define CRAWLER_MAX_REQUEST_LEN		2048
+
 // add headers that you want to pre-compile here
 #include <Windows.h>
 #include <iostream>
@@ -34,6 +39,7 @@
 #include <sstream>
 #include <unordered_set>
 #include "WebClient.h"
+#include "WebSocket.h"
 
 
 

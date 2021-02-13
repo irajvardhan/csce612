@@ -15,11 +15,20 @@ typedef struct url {
 	std::string fragment;
 	bool isValid;
 	std::string blameInvalidOn;
+	int statusCode;
+	int errorCode;
+
+	url() {
+		statusCode = -1;
+		errorCode = 0;
+	}
+
 }URL;
 
 class URLParser {
 
 public:
+	
 	URL parseURL(std::string url);
 	void displayURL(URL urlElems);
 };

@@ -12,7 +12,6 @@ URL URLParser::parseURL(string url) {
 	URL urlElems;
 	try {
 		//printf("\t  Parsing URL... ");
-		
 		if (url.empty()) {
 			urlElems.blameInvalidOn = "url_size";
 			throw "Error: Url is empty\n";
@@ -23,13 +22,19 @@ URL URLParser::parseURL(string url) {
 			throw "failed due to invalid scheme";
 		}
 
+		if (url.length() > CRAWLER_MAX_URL_LEN) {
+			urlElems.blameInvalidOn = "url_length";
+			throw "URL exceeded max URL length";
+		}
+
 		// remove the scheme "http://"
 		url = url.substr(7);
 
 		// remove "www." if present
+		/*
 		if (url.substr(0, 4).compare("www.") == 0) {
 			url = url.substr(4);
-		}
+		}*/
 
 		// exclude the fragment from the url and everything to its right
 		size_t found = url.find("#");
@@ -67,6 +72,7 @@ URL URLParser::parseURL(string url) {
 		urlElems.portSpecified = false;
 		found = url.find(":");
 		if (found != string::npos) {
+
 			if (found + 1 < url.length()) {
 				int port = atoi(url.substr(found + 1).c_str());
 				if (port <= 0 || port >= 65354) {
@@ -86,6 +92,12 @@ URL URLParser::parseURL(string url) {
 		}
 
 		urlElems.host = url;
+		
+		if (urlElems.host.length() > CRAWLER_MAX_HOST_LEN) {
+			urlElems.blameInvalidOn = "url_host_length";
+			throw "URL's host exceeded max host length";
+		}
+		
 		urlElems.isValid = true;
 	}
 	catch (const char* msg) {
