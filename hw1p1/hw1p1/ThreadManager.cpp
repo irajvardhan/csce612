@@ -125,6 +125,10 @@ void showStats() {
 
 	printf("HTTP codes: 2xx = %d, 3xx = %d, 4xx = %d, 5xx = %d, other = %d\n", int(statsManager.numCode2xx), int(statsManager.numCode3xx), int(statsManager.numCode4xx), int(statsManager.numCode5xx), int(statsManager.numCodeOther));
 
+	printf("%d links point to a TAMU website. Out of these, %d originate from outside of TAMU\n", int(statsManager.numTAMUlinks), int(statsManager.numLinksFromOutsideTAMU));
+	printf("However, overall there were %d links which contained tamu.edu anywhere in them.\n", int(statsManager.numLinksContainingTAMUAnywhere));
+	printf("%d pages contain a link that points to a TAMU website. Out of these, %d originate from outside of TAMU\n", int(statsManager.numPagesContainingTamuLink), int(statsManager.numPagesFromOutsideTamu));
+
 }
 
 void ThreadManager::initProducerConsumer(string content, int numThreads)

@@ -141,3 +141,56 @@ void URLParser::displayURL(URL urlElems) {
 	}
 
 }
+
+// parse a url
+string URLParser::getHost(string url) {
+	string host = "";
+	try {
+		//printf("\t  Parsing URL... ");
+		if (url.empty()) {
+			throw "Error: Url is empty\n";
+		}
+
+		// remove the scheme "http://"
+		if (url.substr(0, 7).compare("http://") == 0) {
+			url = url.substr(7);
+		}
+		else if (url.substr(0, 8).compare("https://") == 0) {
+			url = url.substr(8);
+		}
+
+		if (url.substr(0, 4).compare("www.") == 0) {
+			url = url.substr(4);
+		}
+
+		// exclude the fragment from the url and everything to its right
+		size_t found = url.find("#");
+		if (found != string::npos) {
+			url = url.substr(0, found);
+		}
+
+		// Extract query and truncate
+		found = url.find("?");
+		if (found != string::npos) {
+			url = url.substr(0, found);
+		}
+
+		// Extract path and truncate
+		found = url.find("/");
+		if (found != string::npos) {
+			url = url.substr(0, found);
+		}
+		
+		found = url.find(":");
+		if (found != string::npos) {
+			url = url.substr(0, found);
+		}
+
+		host = url;
+	}
+	catch (const char* msg) {
+		
+	}
+
+	return host;
+}

@@ -21,6 +21,10 @@ StatsManager::StatsManager()
 
 	duplicateHosts = 0;
 	numRobotReqFail = 0;
+
+	numTAMUlinks = 0;
+	numLinksFromOutsideTAMU = 0;
+	numLinksContainingTAMUAnywhere = 0;
 }
 
 void StatsManager::incrementActiveThreads()
@@ -111,4 +115,29 @@ void StatsManager::incrementDuplicateHosts()
 void StatsManager::incrementRobotReqFail()
 {
 	numRobotReqFail++;
+}
+
+void StatsManager::incrementNumTAMUlinks()
+{
+	numTAMUlinks++;
+}
+
+void StatsManager::incrementNumLinksFromOutsideTAMU()
+{
+	numLinksFromOutsideTAMU++;
+}
+
+void StatsManager::incrementNumLinksContainingTAMUAnywhere()
+{
+	numLinksContainingTAMUAnywhere++;
+}
+
+void StatsManager::incrementNumPagesContainingTamuLink()
+{
+	numPagesContainingTamuLink++;
+}
+
+void StatsManager::incrementNumPagesFromOutsideTamu()
+{
+	numPagesFromOutsideTamu++;
 }

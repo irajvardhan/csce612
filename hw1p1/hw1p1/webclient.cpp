@@ -33,6 +33,28 @@ pair<unordered_set<string>::iterator, bool>  WebClient::addHostToSeen(string hos
 	
 }
 
+bool isHostTamu(string url) 
+{
+	if (url.empty()) {
+		return false;
+	}
+	
+	if (url.compare("tamu.edu") == 0) {
+		return true;
+	}
+
+	// correct = abc.tamu.edu , x.tamu.edu
+	// wrong = .tamu.edu, abctamu.edu, tamu.edu89
+	if (url.size() > 9) {
+		int l = url.size();
+		int st = l - 9;
+		if (url.substr(st).compare(".tamu.edu") == 0) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsManager) {
 	// string pointing to an HTTP server (DNS name or IP)
@@ -76,8 +98,6 @@ void WebClient::crawl(string url, HTMLParserBase* parser, StatsManager& statsMan
 	}
 	statsManager.incrementURLsWithUniqueHost();
 	//printf("passed\n");
-
-	//return;//remove this
 
 	// structure used in DNS lookups
 	struct hostent* remote;
@@ -308,11 +328,48 @@ bool WebClient::connectAndProcess(string type, struct sockaddr_in server,
 		// check for errors indicated by negative values
 		if (nLinks < 0) {
 			nLinks = 0;
-		}
+		} 
 		statsManager.incrementLinksFound(nLinks);
 		en = hrc::now();        // get end time point
 		elapsed = ELAPSED_MS(st, en);
 		//printf("done in %.2f ms with %d links\n\n", elapsed, nLinks);
+	
+		// print each URL; these are NULL-separated C strings
+		bool pageContainsTamuLink = false;
+		
+		for (int i = 0; i < nLinks; i++)
+		{
+			string pageLink(linkBuffer);
+			
+			URLParser urlParser2;
+			string linkHost = urlParser2.getHost(pageLink);
+
+			size_t found = linkHost.find("tamu.edu");
+			if (found != string::npos) {
+				statsManager.incrementNumLinksContainingTAMUAnywhere();
+			}
+
+			if (isHostTamu(linkHost)) {
+				statsManager.incrementNumTAMUlinks();
+				statsManager.incrementNumPagesContainingTamuLink();
+				pageContainsTamuLink = true;
+				break;
+			}
+			
+			linkBuffer += strlen(linkBuffer) + 1;
+		}
+		
+		if (pageContainsTamuLink) {
+			string cleanPageHost = urlElems.host;
+			if (cleanPageHost.substr(0, 4).compare("www.") == 0) {
+				cleanPageHost = cleanPageHost.substr(4);
+			}
+			// how many links to a tamu.edu page originate from outside of TAMU i.e. with non abc.tamu.edu hosts
+			if (!isHostTamu(cleanPageHost)) {
+				statsManager.incrementNumLinksFromOutsideTAMU();
+				statsManager.incrementNumPagesFromOutsideTamu();
+			}
+		}
 	}
 	else if (type == "robot") {
 		return false;

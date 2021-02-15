@@ -31,4 +31,7 @@ public:
 	
 	URL parseURL(std::string url);
 	void displayURL(URL urlElems);
+
+	std::string getHost(std::string url);
+
 };

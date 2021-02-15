@@ -23,7 +23,7 @@ public:
 	std::atomic<int> numRobotBytes, numPageBytes;
 	std::atomic<int> numCode2xx, numCode3xx, numCode4xx, numCode5xx, numCodeOther;
 	std::atomic<int> duplicateHosts, numRobotReqFail;
-
+	std::atomic<int> numTAMUlinks, numLinksFromOutsideTAMU, numLinksContainingTAMUAnywhere, numPagesContainingTamuLink, numPagesFromOutsideTamu;
 
 	StatsManager();
 
@@ -46,4 +46,11 @@ public:
 
 	void incrementDuplicateHosts();
 	void incrementRobotReqFail();
+
+
+	void incrementNumTAMUlinks();
+	void incrementNumLinksFromOutsideTAMU();
+	void incrementNumLinksContainingTAMUAnywhere();
+	void incrementNumPagesContainingTamuLink();
+	void incrementNumPagesFromOutsideTamu();
 };
