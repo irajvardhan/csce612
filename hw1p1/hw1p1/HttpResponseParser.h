@@ -12,6 +12,7 @@ typedef struct httpResponse {
 	std::string protocol;
 	std::string protocolVersion;
 	bool isValid;
+	bool isChunked;
 
 	httpResponse() {
 		statusCode = -1;
@@ -20,6 +21,7 @@ typedef struct httpResponse {
 		protocol = "";
 		protocolVersion = "";
 		isValid = false;
+		isChunked = false;
 	}
 }HTTPresponse;
 

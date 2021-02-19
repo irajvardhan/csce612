@@ -36,6 +36,14 @@ HTTPresponse HttpResponseParser::parseHttpResponse(string recvBuf)
 			throw "Error: unable to find header";
 		}
 
+		found = response.header.find("transfer-encoding: chunked");
+		if (found != string::npos) {
+			response.isChunked = true;
+		}
+		else {
+			response.isChunked = false;
+		}
+
 		// get the protocol (e.g., HTTP)
 		found = recvBuf.find("/");
 		if (found != string::npos) {

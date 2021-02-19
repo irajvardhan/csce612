@@ -104,30 +104,31 @@ void showStats() {
 	en = hrc::now();        // get end time point
 	elapsedSinceStart = (int)(ELAPSED_MS(st, en) / 1000); // in seconds
 	double rate = statsManager.e / elapsedSinceStart;
-	printf("Extracted %d URLs @ %.2f/s\n", int(statsManager.e), rate);
+	printf("Extracted %d URLs @ %d/s\n", int(statsManager.e), int(rate));
 	
 	rate = int(statsManager.h) / elapsedSinceStart;
-	printf("Looked up %d DNS names @ %.2f/s\n", int(statsManager.h), rate);
+	printf("Looked up %d DNS names @ %d/s\n", int(statsManager.h), int(rate));
 	
 	// remove this
 	//printf("Duplicate hosts: %d\n", int(statsManager.duplicateHosts));
 	//printf("Number of failed Robot requests: %d\n", int(statsManager.numRobotReqFail));
 	
 	rate = int(statsManager.i) / elapsedSinceStart;
-	printf("Downloaded %d robots @ %.2f/s\n", int(statsManager.i), rate);
+	printf("Downloaded %d robots @ %d/s\n", int(statsManager.i), int(rate));
 
 	rate = int(statsManager.c) / elapsedSinceStart;
 	double downloadedMB = statsManager.numPageBytes/(1024*1024);
-	printf("Crawled %d pages @ %.2f/s (%.2fMB)\n", int(statsManager.c), rate, downloadedMB);
+	printf("Crawled %d pages @ %d/s (%.2fMB)\n", int(statsManager.c), int(rate), downloadedMB);
 	
 	rate = int(statsManager.l) / elapsedSinceStart;
-	printf("Parsed %d links @%.2f/s\n", int(statsManager.l), rate);
+	printf("Parsed %d links @%d/s\n", int(statsManager.l), int(rate));
 
 	printf("HTTP codes: 2xx = %d, 3xx = %d, 4xx = %d, 5xx = %d, other = %d\n", int(statsManager.numCode2xx), int(statsManager.numCode3xx), int(statsManager.numCode4xx), int(statsManager.numCode5xx), int(statsManager.numCodeOther));
 
-	printf("%d links point to a TAMU website. Out of these, %d originate from outside of TAMU\n", int(statsManager.numTAMUlinks), int(statsManager.numLinksFromOutsideTAMU));
-	printf("However, overall there were %d links which contained tamu.edu anywhere in them.\n", int(statsManager.numLinksContainingTAMUAnywhere));
-	printf("%d pages contain a link that points to a TAMU website. Out of these, %d originate from outside of TAMU\n", int(statsManager.numPagesContainingTamuLink), int(statsManager.numPagesFromOutsideTamu));
+	// Below part is for the report questions
+	//printf("%d links point to a TAMU website. Out of these, %d originate from outside of TAMU\n", int(statsManager.numTAMUlinks), int(statsManager.numLinksFromOutsideTAMU));
+	//printf("However, overall there were %d links which contained tamu.edu anywhere in them.\n", int(statsManager.numLinksContainingTAMUAnywhere));
+	//printf("%d pages contain a link that points to a TAMU website. Out of these, %d originate from outside of TAMU\n", int(statsManager.numPagesContainingTamuLink), int(statsManager.numPagesFromOutsideTamu));
 
 }
 

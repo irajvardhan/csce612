@@ -32,8 +32,24 @@ int main(int argc, char**argv)
 	if (argc == 2) {
 		string url(argv[1]);
 		WebClient client;
-		//client.crawl(url);
-		//printf("\n############################----x----###############################\n\n\n");
+
+		WSADATA wsaData;
+
+		//Initialize WinSock; once per program run
+		WORD wVersionRequested = MAKEWORD(2, 2);
+		if (WSAStartup(wVersionRequested, &wsaData) != 0) {
+			printf("WSAStartup error %d\n", WSAGetLastError());
+			WSACleanup();
+			return 0;
+		}
+
+		client.crawl(url);
+
+		// call cleanup when done with everything and ready to exit program
+		WSACleanup();
+
+		return 0;
+
 	} else if(argc == 3) {
 		
 		// check if number of threads is valid
