@@ -19,4 +19,12 @@ public:
 	USHORT q_class;
 
 };
+
+class FixedRR {
+public:
+	USHORT q_type;
+	USHORT q_class;
+	int TTL;
+	USHORT rd_length;
+};
 #pragma pack(pop) // restores to old packing

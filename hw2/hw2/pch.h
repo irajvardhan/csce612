@@ -19,6 +19,7 @@
 #define LOOKUP_IS_IP 1
 
 #define MAX_ATTEMPTS 3
+#define MAX_DNS_SIZE 512 // largest valid UDP packet
 
 /* DNS query types */
 #define DNS_NS 2 /* name server */

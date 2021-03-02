@@ -32,7 +32,8 @@ public:
 	bool Open(void);
 	bool Send(char* buf, int size, struct sockaddr_in&remote, int size_remote);
 	//RecvOutcome Read(int maxDownloadSize);
+	bool Read(struct sockaddr_in& remote);
 	void Close(void);
-	//char* GetBufferData(void);
+	char* GetBufferData(void);
 	~Socket();
 };
