@@ -404,49 +404,67 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 			cur = cur + sizeof(QueryHeader);
 
 			u_short num_answers = ntohs(recv_dh->n_answers);
-			printf("\t------ [answers] --------\n");
-			for (int i = 0;i < num_answers;i++) {
-				
-				// cur should not exceed the boundary
-				if (cur - recvBuf >= recv_res) {
-					printf("\t++ invalid section: not enough records\n");
-					delete[] buf;
-					delete[] recvBuf;
-					return false;
-				}
+			u_short num_authority = ntohs(recv_dh->n_authority);
+			u_short num_additional = ntohs(recv_dh->n_additional);
 
-				//printArr(cur, 100);
-				printf("\t\t");
-				cur = jump(cur, recvBuf, recv_res);
-				printf(" ");
+			vector<u_short> region_count;
+			region_count.push_back(num_answers);
+			region_count.push_back(num_authority);
+			region_count.push_back(num_additional);
+			int index = 0;
+			map<int, string> mymap;
+			mymap[0] = "answers";
+			mymap[1] = "authority";
+			mymap[2] = "additional";
 
-				if (cur + sizeof(FixedRR) - recvBuf > recv_res) {
-					printf("\t++invalid record: truncated RR answer header\n");
-					delete[] buf;
-					delete[] recvBuf;
-					return false;
+			for (vector<u_short>::iterator it = region_count.begin(); it != region_count.end(); ++it) {
+				u_short count = *it;
+				string region = mymap[index++];
+				if (count > 0) {
+					printf("\t------ [%s] --------\n",region.c_str());
 				}
-				
-				FixedRR* fixed_rr = (FixedRR*)cur;
-				// the fixed RR has been extracted so we can move cur forward
-				cur = cur + sizeof(FixedRR);
-				//printArr(cur, 20);
-				int rr_qtype = getQtype(fixed_rr);
-				int ttl;
-				
-				// validate data length
-				if (rr_qtype == DNS_A || rr_qtype == DNS_PTR || rr_qtype == DNS_NS || rr_qtype == DNS_CNAME) {
-					u_short data_len;
-					data_len = ntohs(fixed_rr->rd_length);
-					if (cur + data_len - recvBuf > recv_res) {
-						printf("\t++ invalid record: RR value length stretches the answer beyond packet\n");
+				for (int i = 0;i < count; i++) {
+
+					// cur should not exceed the boundary
+					if (cur - recvBuf >= recv_res) {
+						printf("\t++ invalid section: not enough records\n");
 						delete[] buf;
 						delete[] recvBuf;
 						return false;
 					}
-				}
-				
-				switch (rr_qtype) {
+
+					//printArr(cur, 100);
+					printf("\t\t");
+					cur = jump(cur, recvBuf, recv_res);
+					printf(" ");
+
+					if (cur + sizeof(FixedRR) - recvBuf > recv_res) {
+						printf("\t++invalid record: truncated RR answer header\n");
+						delete[] buf;
+						delete[] recvBuf;
+						return false;
+					}
+
+					FixedRR* fixed_rr = (FixedRR*)cur;
+					// the fixed RR has been extracted so we can move cur forward
+					cur = cur + sizeof(FixedRR);
+					//printArr(cur, 20);
+					int rr_qtype = getQtype(fixed_rr);
+					int ttl;
+
+					// validate data length
+					if (rr_qtype == DNS_A || rr_qtype == DNS_PTR || rr_qtype == DNS_NS || rr_qtype == DNS_CNAME) {
+						u_short data_len;
+						data_len = ntohs(fixed_rr->rd_length);
+						if (cur + data_len - recvBuf > recv_res) {
+							printf("\t++ invalid record: RR value length stretches the answer beyond packet\n");
+							delete[] buf;
+							delete[] recvBuf;
+							return false;
+						}
+					}
+
+					switch (rr_qtype) {
 					case DNS_A:
 						printf("A ");
 						// Show the data (IP address)
@@ -459,11 +477,11 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 
 						// The TTL is 4 bytes. Note the use of ntohl which returns 32 bit value. ntohs returns 2 bytes
 						ttl = ntohl(fixed_rr->TTL);
-						printf(" TTL = %d",ttl);
-						
+						printf(" TTL = %d", ttl);
+
 						// the 4 bytes of ip are not part of FixedRR, so move cur by 4
 						cur = cur + 4;
-						
+
 						break;
 
 					case DNS_PTR:
@@ -479,7 +497,7 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 							printf("CNAME ");
 						}
 						cur = jump(cur, recvBuf, recv_res);
-						
+
 						// The TTL is 4 bytes. Note the use of ntohl which returns 32 bit value. ntohs returns 2 bytes
 						ttl = ntohl(fixed_rr->TTL);
 						printf(" TTL = %d", ttl);
@@ -489,9 +507,116 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 					default:
 						break;
 
+					}
+					printf("\n");
 				}
-				printf("\n");
+
 			}
+
+			// Process answers
+			//if (num_answers > 0) {
+			//	printf("\t------ [answers] --------\n");
+			//}
+			//for (int i = 0;i < num_answers;i++) {
+			//	
+			//	// cur should not exceed the boundary
+			//	if (cur - recvBuf >= recv_res) {
+			//		printf("\t++ invalid section: not enough records\n");
+			//		delete[] buf;
+			//		delete[] recvBuf;
+			//		return false;
+			//	}
+
+			//	//printArr(cur, 100);
+			//	printf("\t\t");
+			//	cur = jump(cur, recvBuf, recv_res);
+			//	printf(" ");
+
+			//	if (cur + sizeof(FixedRR) - recvBuf > recv_res) {
+			//		printf("\t++invalid record: truncated RR answer header\n");
+			//		delete[] buf;
+			//		delete[] recvBuf;
+			//		return false;
+			//	}
+			//	
+			//	FixedRR* fixed_rr = (FixedRR*)cur;
+			//	// the fixed RR has been extracted so we can move cur forward
+			//	cur = cur + sizeof(FixedRR);
+			//	//printArr(cur, 20);
+			//	int rr_qtype = getQtype(fixed_rr);
+			//	int ttl;
+			//	
+			//	// validate data length
+			//	if (rr_qtype == DNS_A || rr_qtype == DNS_PTR || rr_qtype == DNS_NS || rr_qtype == DNS_CNAME) {
+			//		u_short data_len;
+			//		data_len = ntohs(fixed_rr->rd_length);
+			//		if (cur + data_len - recvBuf > recv_res) {
+			//			printf("\t++ invalid record: RR value length stretches the answer beyond packet\n");
+			//			delete[] buf;
+			//			delete[] recvBuf;
+			//			return false;
+			//		}
+			//	}
+			//	
+			//	switch (rr_qtype) {
+			//		case DNS_A:
+			//			printf("A ");
+			//			// Show the data (IP address)
+			//			for (int j = 0;j < 4;j++) {
+			//				int ip_part = (unsigned char)(cur[j] & 0x0F) + 16 * ((unsigned char)cur[j] >> 4);
+			//				printf("%d", ip_part);
+			//				if (j < 3)
+			//					printf(".");
+			//			}
+
+			//			// The TTL is 4 bytes. Note the use of ntohl which returns 32 bit value. ntohs returns 2 bytes
+			//			ttl = ntohl(fixed_rr->TTL);
+			//			printf(" TTL = %d",ttl);
+			//			
+			//			// the 4 bytes of ip are not part of FixedRR, so move cur by 4
+			//			cur = cur + 4;
+			//			
+			//			break;
+
+			//		case DNS_PTR:
+			//		case DNS_NS:
+			//		case DNS_CNAME:
+			//			if (rr_qtype == DNS_PTR) {
+			//				printf("PTR ");
+			//			}
+			//			else if (rr_qtype == DNS_NS) {
+			//				printf("NS ");
+			//			}
+			//			else {
+			//				printf("CNAME ");
+			//			}
+			//			cur = jump(cur, recvBuf, recv_res);
+			//			
+			//			// The TTL is 4 bytes. Note the use of ntohl which returns 32 bit value. ntohs returns 2 bytes
+			//			ttl = ntohl(fixed_rr->TTL);
+			//			printf(" TTL = %d", ttl);
+
+			//			break;
+
+			//		default:
+			//			break;
+
+			//	}
+			//	printf("\n");
+			//}
+
+			//// Process authority
+			//if (num_authority > 0) {
+			//	printf("\t------ [authority] --------\n");
+			//}
+			//for (int i = 0;i < num_authority;i++) {
+
+			//}
+
+			//// Process additional
+			//if (num_additional > 0) {
+			//	printf("\t------ [additional] --------\n");
+			//}
 
 			//printArr(recvBuf, recv_res);
 			delete[] buf;
