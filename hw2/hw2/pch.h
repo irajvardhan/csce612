@@ -63,6 +63,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <stack>
 #include <map>
 #include <unordered_set>
 #include "WebSocket.h"

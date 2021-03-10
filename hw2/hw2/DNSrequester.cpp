@@ -133,7 +133,7 @@ char* jump(char* cur, char* recv_buf, int recv_res) {
 		// check if next byte exists [next byte is required to find jump offset]
 		int index_of_last_byte = recv_res - 1;
 		if (cur + 1 - recv_buf > index_of_last_byte) {
-			printf("\t++invalid record: truncated jump offset\n");
+			printf("\n\t++invalid record: truncated jump offset\n");
 			WSACleanup();
 			exit(0);
 		}
@@ -141,13 +141,13 @@ char* jump(char* cur, char* recv_buf, int recv_res) {
 		int jump_offset = (((unsigned char)cur[0] & 0x3F) << 8) + (unsigned char)cur[1];
 
 		if (jump_offset > recv_res) {
-			printf("\t++invalid record: jump beyond packet boundary\n");
+			printf("\n\t++invalid record: jump beyond packet boundary\n");
 			WSACleanup();
 			exit(0);
 		}
 
 		if (jump_offset < 12) {
-			printf("\t++ invalid record: jump into fixed DNs header\n");
+			printf("\n\t++ invalid record: jump into fixed DNs header\n");
 			WSACleanup();
 			exit(0);
 		}
@@ -171,7 +171,7 @@ char* jump(char* cur, char* recv_buf, int recv_res) {
 		cur = cur + 1;
 
 		if (cur + seg_size - recv_buf > recv_res) {
-			printf("\t++ invalid record: truncated name\n");
+			printf("\n\t++ invalid record: truncated name\n");
 			WSACleanup();
 			exit(0);
 		}
@@ -191,6 +191,45 @@ char* jump(char* cur, char* recv_buf, int recv_res) {
 
 int getQtype(FixedRR* fixed_rr) {
 	return (int)htons(fixed_rr->q_type);
+}
+
+string getReverseIPfromInput(string lookup) {
+	// assume lookup is a.b.c.d
+	
+	stack<string> st;
+	string temp = lookup;
+
+	// extract and push a,b,c to stack to get [c,b,a]
+	while (!temp.empty()) {
+		size_t found = temp.find(".");
+		if (found != string::npos) {
+			string part = temp.substr(0,found);
+			temp = temp.substr(found + 1);
+			st.push(part);
+		}
+		else {
+			break;
+		}
+	}
+	
+	// the least significant byte d gets pushed now to get [d,c,b,a]
+	st.push(temp);
+
+	// pop and reconstruct string to get d.c.b.a
+	string ans = "";
+	while (!st.empty()) {
+		string part = st.top();
+		st.pop();
+		if (st.size() > 0) {
+			ans = ans + part + ".";
+		}
+		else {
+			ans = ans + part;
+		}
+	}
+	ans = ans + ".in-addr.arpa";
+
+	return ans;
 }
 
 bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
@@ -213,10 +252,11 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 	else {
 		// lookup  is an IP => Query type is PTR
 		type = DNS_PTR;
-		query = lookup; //TOOD COMPUTE IP STRING HERE
+		query = getReverseIPfromInput(lookup);
+
 	}
 
-	int packet_size = lookup.length() + 2 + sizeof(FixedDNSheader) + sizeof(QueryHeader);
+	int packet_size = query.length() + 2 + sizeof(FixedDNSheader) + sizeof(QueryHeader);
 	char* buf = new char[packet_size];
 
 	FixedDNSheader* dh = (FixedDNSheader*)buf;
@@ -241,19 +281,19 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 	char* temp = buf + sizeof(FixedDNSheader);
 	strcpy_s(temp, int(question.length())+1, question.c_str());*/
 
-	char* host = new char[lookup.length() + 1];
-	strcpy_s(host, lookup.length() + 1, lookup.c_str());
+	char* host = new char[query.length() + 1];
+	strcpy_s(host, query.length() + 1, query.c_str());
 	
 	makeDNSquestion((char*)(dh+1), host);
 
 	printf("Lookup\t:  %s\n", lookup.c_str());
-	printf("Query\t:  %s, type:%d, TXID 0x%04x\n", lookup.c_str(), type, ntohs(dh->TXID));
+	printf("Query\t:  %s, type:%d, TXID 0x%04x\n", query.c_str(), type, ntohs(dh->TXID));
 	printf("Server\t:  %s\n", dns_ip.c_str());
 	printf("*********************************\n");
 
 	int attempt = 0;
 	while (attempt < MAX_ATTEMPTS) {
-		printf("Attempt %d with %d bytes...", attempt, packet_size);
+		printf("Attempt %d with %d bytes...", attempt++, packet_size);
 		// prepare to send request to server
 
 		// wrapper on system's socket class
@@ -342,12 +382,12 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 				return false;
 			}
 			
-			printf("\tTXID 0x%04x ", htons(recv_dh->TXID));
-			printf("flags 0x%04x ", htons(recv_dh->flags));
-			printf("questions %d ", htons(recv_dh->n_questions));
-			printf("answers %d ", htons(recv_dh->n_answers));
-			printf("authority %d ", htons(recv_dh->n_authority));
-			printf("additional %d", htons(recv_dh->n_additional));
+			printf("\tTXID 0x%04x ", ntohs(recv_dh->TXID));
+			printf("flags 0x%04x ", ntohs(recv_dh->flags));
+			printf("questions %d ", ntohs(recv_dh->n_questions));
+			printf("answers %d ", ntohs(recv_dh->n_answers));
+			printf("authority %d ", ntohs(recv_dh->n_authority));
+			printf("additional %d", ntohs(recv_dh->n_additional));
 			printf("\n");
 			
 			// Validate response
@@ -637,9 +677,6 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 			printf("timeout in %d ms\n", int(elapsed));
 			continue;
 		}
-
-
-		attempt++;
 	}
 
 	return true;
