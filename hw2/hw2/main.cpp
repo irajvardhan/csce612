@@ -15,6 +15,7 @@ int main(int argc, char** argv)
 		printf("Incorrect arguments. \nUsage: %s <lookup-string> <DNS-server-IP>\n", argv[0]);
 		return 0;
 	}
+	UINT64 x;
 
 	WSADATA wsaData;
 

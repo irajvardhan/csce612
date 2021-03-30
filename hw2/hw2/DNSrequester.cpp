@@ -1,14 +1,32 @@
+/*
+* CSCE 612 [Spring 2021]
+* by Raj Vardhan
+*/
 #include "pch.h"
 #include "DNSrequester.h"
 #pragma comment(lib, "ws2_32.lib")
 
 using namespace std;
 
+/* 
+* global variable to recursively construct a name 
+* that is part of an RR.
+* We may need to make jumps to construct this name.
+* Also, a name may be corrupted if the packet is malformed.
+*/
 string name;
+
+/*
+* We use the below map to keep track of jump offsets that have
+* been seen. This is essentially to detect jump loops.
+* We clear this map each time we are calling the jump function.
+*/
 map<int, bool> offset_seen;
 map<int, bool>::iterator m_it;
 
-// not working
+/* 
+* This function did not work
+*/
 string makeDNSquestion(string host) {
 
 	string dot = ".";
@@ -38,6 +56,9 @@ string makeDNSquestion(string host) {
 	return buf_str;
 }
 
+/*
+* Construct the DNS question is the required format
+*/
 void makeDNSquestion(char* buf, char* host) {
 	char dot = '.';
 
@@ -92,7 +113,9 @@ void makeDNSquestion(char* buf, char* host) {
 }
 
 /*
-* Prints the content of the buffer in hex
+* This is a helper method.
+* It Prints the content of the buffer in hex.
+* Output is same as what can be seen in Wireshark.
 * return: None
 */
 void printArr(char* ptr, int len)
@@ -144,8 +167,15 @@ char* jump(char* cur, char* recv_buf, int recv_res) {
 		return cur + 1;
 	}
 
+	/*
+	* We have arrived at a compressed part of an answer 
+	* if the current byte has a value greater than 0xC0
+	* i.e. its first two bits will be 11......
+	* The remaining 6bits and the next 8 bits will be used
+	* to determine the jump offset
+	*/
 	bool is_compressed = false;
-	is_compressed = (unsigned char)cur[0] >= 0xC0;
+	is_compressed = (unsigned char)cur[0] >= 0xC0; // 0xC0 = 1100 0000 in binary
 
 	if (is_compressed) {
 		// 0x3F is 00111111
@@ -160,6 +190,11 @@ char* jump(char* cur, char* recv_buf, int recv_res) {
 			exit(0);
 		}
 
+		/*
+		* We need a jump offset of two bytes (B1 B2). Byte1 is obtained by taking & with the mask
+		* 0x3F which is 0011 1111. By doing so, we exclude the leftmost two bits of first byte.
+		* We left shift this byte by 8 to obtain byte1. Byte2 is simply the following byte cur[1].
+		*/
 		int jump_offset = (((unsigned char)cur[0] & 0x3F) << 8) + (unsigned char)cur[1];
 
 		if (jump_offset > recv_res) {
@@ -351,7 +386,6 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 		SOCKET sock; // socket handle
 		
 		// open a UDP socket
-		
 		// DNS uses UDP
 		sock = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -376,7 +410,7 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 		struct sockaddr_in remote;
 		memset(&remote, 0, sizeof(remote));
 		remote.sin_family = AF_INET;
-		remote.sin_addr.s_addr = inet_addr(dns_ip.c_str());
+		remote.sin_addr.s_addr = inet_addr(dns_ip.c_str()); // dns_ip is the IP of the local DNS server we are connecting to
 		remote.sin_port = htons(53); // DNS port on server
 
 		st = hrc::now();
@@ -399,7 +433,8 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 		struct sockaddr_in response;
 		int size = sizeof(response);
 		int ret = select(0, &fd, NULL, NULL, &tp);
-		int recv_res = 0;
+		int recv_res = 0; // number of bytes received
+		
 		if (ret > 0) {
 			recv_res = recvfrom(sock, recvBuf, MAX_DNS_SIZE, 0, (struct sockaddr*)&response, &size);
 
@@ -430,8 +465,9 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 				return false;
 			}
 
+			// Extract first 12 bytes of information from the response buffer. This will get loaded into the structure specified.
 			FixedDNSheader* recv_dh = (FixedDNSheader*)recvBuf;
-			//TODO handle more corner cases
+			//TODO handle more corner cases. Also, this check may not be required.
 			if (recv_dh == NULL) {
 				printf("failed due to fixed DNS header not being found in resonse\n");
 				delete[] buf;
@@ -447,14 +483,6 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 			printf("additional %d", ntohs(recv_dh->n_additional));
 			printf("\n");
 			
-			//// Validate response
-			//if (htons(recv_dh->TXID) != htons(dh->TXID)) {
-			//	printf("\t++ invalid reply: TXID mismatch, sent 0x%04x, received 0x%04x\n", htons(dh->TXID), htons(recv_dh->TXID));
-			//	delete[] buf;
-			//	delete[] recvBuf;
-			//	return false;
-			//}
-
 			// validate the response
 			if (!validateResponse(dh, recv_dh)) {
 				delete[] buf;
@@ -462,10 +490,10 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 				return false;
 			}
 
-			
 			char* cur = recvBuf;
-			cur = cur + sizeof(FixedDNSheader);
+			cur = cur + sizeof(FixedDNSheader); // cur is now pointing to the first byte after the FixedDNSheader
 
+			// Note that the query-name part of questions is not compressed [no jump needed]
 			printf("\t------ [questions] --------\n");
 			for (int q=0; q< ntohs(recv_dh->n_questions);q++){
 				printf("\t\t");
@@ -473,7 +501,7 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 				while (true) {
 					int part_len = cur[0];
 				
-					// we have reached end of question
+					// we have to process a part of the question
 					if (part_len > 0) {
 						// point to the first letter of the part
 						cur = cur + 1;
@@ -481,7 +509,9 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 						memcpy(part, cur, part_len);
 						part[part_len] = '\0';
 					
-						// This is to avoid putting a dot after the last part e.g., "com"
+						// print a dot only if a part has been printer before
+						// This is to avoid putting a dot before the first part 
+						// e.g., "shop.amazon.com should NOT print as .shop.amazon.com"
 						if (put_dot)
 							printf(".");
 						else
@@ -493,13 +523,13 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 					}
 					else{
 						// part_len is 0
-						cur = cur + 1;
+						cur = cur + 1; // cur now points to the QueryHeader
 						break;
 					}
 				}
 				QueryHeader* recv_qh = (QueryHeader*)cur;
-				printf(" type %d class %d\n", htons(recv_qh->q_type), htons(recv_qh->q_class));
-				cur = cur + sizeof(QueryHeader);
+				printf(" type %d class %d\n", ntohs(recv_qh->q_type), ntohs(recv_qh->q_class));
+				cur = cur + sizeof(QueryHeader); // if there is another question, cur will point to the beginning of that, otherwise to the next component (e.g., an answer)
 			}
 
 			
@@ -534,7 +564,6 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 						return false;
 					}
 
-					//printArr(cur, 100);
 					printf("\t\t");
 					name = "";
 					offset_seen.clear();
@@ -559,7 +588,6 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 					FixedRR* fixed_rr = (FixedRR*)cur;
 					// the fixed RR has been extracted so we can move cur forward
 					cur = cur + sizeof(FixedRR);
-					//printArr(cur, 20);
 					int rr_qtype = getQtype(fixed_rr);
 					int ttl;
 
@@ -627,112 +655,6 @@ bool DNSrequester::makeDNSrequest(std::string lookup, std::string dns_ip)
 
 			}
 
-			// Process answers
-			//if (num_answers > 0) {
-			//	printf("\t------ [answers] --------\n");
-			//}
-			//for (int i = 0;i < num_answers;i++) {
-			//	
-			//	// cur should not exceed the boundary
-			//	if (cur - recvBuf >= recv_res) {
-			//		printf("\t++ invalid section: not enough records\n");
-			//		delete[] buf;
-			//		delete[] recvBuf;
-			//		return false;
-			//	}
-
-			//	//printArr(cur, 100);
-			//	printf("\t\t");
-			//	cur = jump(cur, recvBuf, recv_res);
-			//	printf(" ");
-
-			//	if (cur + sizeof(FixedRR) - recvBuf > recv_res) {
-			//		printf("\t++invalid record: truncated RR answer header\n");
-			//		delete[] buf;
-			//		delete[] recvBuf;
-			//		return false;
-			//	}
-			//	
-			//	FixedRR* fixed_rr = (FixedRR*)cur;
-			//	// the fixed RR has been extracted so we can move cur forward
-			//	cur = cur + sizeof(FixedRR);
-			//	//printArr(cur, 20);
-			//	int rr_qtype = getQtype(fixed_rr);
-			//	int ttl;
-			//	
-			//	// validate data length
-			//	if (rr_qtype == DNS_A || rr_qtype == DNS_PTR || rr_qtype == DNS_NS || rr_qtype == DNS_CNAME) {
-			//		u_short data_len;
-			//		data_len = ntohs(fixed_rr->rd_length);
-			//		if (cur + data_len - recvBuf > recv_res) {
-			//			printf("\t++ invalid record: RR value length stretches the answer beyond packet\n");
-			//			delete[] buf;
-			//			delete[] recvBuf;
-			//			return false;
-			//		}
-			//	}
-			//	
-			//	switch (rr_qtype) {
-			//		case DNS_A:
-			//			printf("A ");
-			//			// Show the data (IP address)
-			//			for (int j = 0;j < 4;j++) {
-			//				int ip_part = (unsigned char)(cur[j] & 0x0F) + 16 * ((unsigned char)cur[j] >> 4);
-			//				printf("%d", ip_part);
-			//				if (j < 3)
-			//					printf(".");
-			//			}
-
-			//			// The TTL is 4 bytes. Note the use of ntohl which returns 32 bit value. ntohs returns 2 bytes
-			//			ttl = ntohl(fixed_rr->TTL);
-			//			printf(" TTL = %d",ttl);
-			//			
-			//			// the 4 bytes of ip are not part of FixedRR, so move cur by 4
-			//			cur = cur + 4;
-			//			
-			//			break;
-
-			//		case DNS_PTR:
-			//		case DNS_NS:
-			//		case DNS_CNAME:
-			//			if (rr_qtype == DNS_PTR) {
-			//				printf("PTR ");
-			//			}
-			//			else if (rr_qtype == DNS_NS) {
-			//				printf("NS ");
-			//			}
-			//			else {
-			//				printf("CNAME ");
-			//			}
-			//			cur = jump(cur, recvBuf, recv_res);
-			//			
-			//			// The TTL is 4 bytes. Note the use of ntohl which returns 32 bit value. ntohs returns 2 bytes
-			//			ttl = ntohl(fixed_rr->TTL);
-			//			printf(" TTL = %d", ttl);
-
-			//			break;
-
-			//		default:
-			//			break;
-
-			//	}
-			//	printf("\n");
-			//}
-
-			//// Process authority
-			//if (num_authority > 0) {
-			//	printf("\t------ [authority] --------\n");
-			//}
-			//for (int i = 0;i < num_authority;i++) {
-
-			//}
-
-			//// Process additional
-			//if (num_additional > 0) {
-			//	printf("\t------ [additional] --------\n");
-			//}
-
-			//printArr(recvBuf, recv_res);
 			delete[] buf;
 			delete[] recvBuf;
 			return true;
