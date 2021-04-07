@@ -1,3 +1,7 @@
+/*
+* CSCE 612 [Spring 2021]
+* by Raj Vardhan
+*/
 #pragma once
 #include "pch.h"
 
@@ -32,4 +36,28 @@ public:
 	DWORD recvWnd; // receiver window for flow control (in pkts)
 	DWORD ackSeq; // ack value = next expected sequence
 };
+
+class SenderDataPktHeader {
+public:
+	SenderDataHeader sdh;
+	//char* pktBuf;
+	char pktBuf[MAX_PKT_SIZE]; // TODO check if this should be higher
+};
+
+class SharedParameters {
+public:
+	int base;
+	float MBacked;
+	int nextSeq;
+	int T;
+	int F;
+	int windowSize;
+	float speed;
+	float RTT;
+	float devRTT;
+
+	SharedParameters();
+
+};
+
 #pragma pack(pop)

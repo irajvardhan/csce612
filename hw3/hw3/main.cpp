@@ -69,8 +69,8 @@ int main(int argc, char** argv)
 	elapsed = ELAPSED(st, en);
 	printf("Main:\t connected to %s in %.3f sec, pkt size %d bytes\n", targetHost, elapsed, MAX_PKT_SIZE);
 	
-	// 
-	/*
+	 
+	
 	char* charBuf = (char*)dwordBuf; // this buffer goes into socket
 	
 	UINT64 byteBufferSize = dwordBufSize << 2; // convert to bytes
@@ -82,11 +82,13 @@ int main(int argc, char** argv)
 		
 		// send chunk into socket 
 		if ((status = ss.Send(charBuf + off, bytes)) != STATUS_OK) {
-			// error handing: print status and quit
+			//error handing: print status and quit
+			printf("Main:\Send failed with status %d", status);
+			exit(0);
 		}
 		off += bytes;
 	}
-	*/
+	
 	
 	hrc::time_point before_transfer = hrc::now();
 	if ((status = ss.Close()) != STATUS_OK) {
@@ -97,6 +99,8 @@ int main(int argc, char** argv)
 	hrc::time_point after_transfer = hrc::now();
 	elapsed = ELAPSED(before_transfer, after_transfer);
 	printf("Main:\t transfer finished in %.3f sec \n", elapsed);
+
+	ss.stopStats();
 	
 	return 0;
 }

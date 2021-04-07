@@ -5,27 +5,37 @@
 */
 // SenderSocket.h
 #include "pch.h"
-#define MAGIC_PORT 22345 // receiver listens on this port
-#define MAX_PKT_SIZE (1500-28) // maximum UDP packet size accepted by receiver
 
 class SenderSocket {
 public:
 
 	hrc::time_point obj_st_time;
 	float my_rto;
+	int seq;
+	//Parameters params; //shared parameters
+
+	std::thread statsThread;
 
 	/* These will be accessed by both Open and Close*/
 	SOCKET sock; // socket handle
 	struct sockaddr_in server; // structure for connecting to server
 	LinkProperties my_lp;
+	SharedParameters params;
 
 	bool is_conn_open;
+
+	bool debug_mode;
 	// --done-- //
+
+	
 
 	SenderSocket();
 	int Open(char* targetHost, int rcvPort, int senWindow, LinkProperties* lp);
 
 	int Close();
+
+	// temp todo remove
+	void stopStats();
 
 	int Send(char* sendBuf, int numBytes);
 

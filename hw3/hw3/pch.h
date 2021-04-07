@@ -26,6 +26,10 @@
 #define MAX_ATTEMPTS_SYN 3 // for SYN packets
 #define MAX_ATTEMPTS_OTHER 5 // for all other except SYN
 
+#define MAGIC_PORT 22345 // receiver listens on this port
+#define MAX_PKT_SIZE (1500-28) // maximum UDP packet size accepted by receiver
+
+
 // using chrono high_resolution_clock
 #include <time.h>
 #include <chrono>
@@ -38,6 +42,10 @@ using hrc = high_resolution_clock;
 // add headers that you want to pre-compile here
 #include <iostream>
 #include <Windows.h>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <math.h>
 #include "LinkProperties.h"
 #include "PacketHeaders.h"
 #include "SenderSocket.h"
