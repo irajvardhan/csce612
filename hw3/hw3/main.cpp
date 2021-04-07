@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 		// error handling: print status and quit
 		printf("Main:\t connect failed with status %d\n", status);
 		delete dwordBuf;
-		return 0;
+		exit(0);
 	}
 
 	en = hrc::now();        // get end time point
@@ -84,6 +84,7 @@ int main(int argc, char** argv)
 		if ((status = ss.Send(charBuf + off, bytes)) != STATUS_OK) {
 			//error handing: print status and quit
 			printf("Main:\Send failed with status %d", status);
+			delete dwordBuf;
 			exit(0);
 		}
 		off += bytes;

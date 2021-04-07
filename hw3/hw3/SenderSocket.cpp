@@ -21,16 +21,30 @@ bool cond_check() {
 void showStats(hrc::time_point obj_st_time, SharedParameters* params) {
 	hrc::time_point cur_time;
 	double elapsed;
-
+	double elapsed_interval;
 	unique_lock<mutex> lck(mtx);
+
+	int prev_base = 0;
+	hrc::time_point prev_time = obj_st_time;
 
 	while (cv.wait_for(lck, 2s, cond_check) == false) {
 
 		cur_time = hrc::now();
 		elapsed = ELAPSED(obj_st_time, cur_time);
 
+		if (params->base > 0) {
+			// num_bytes_acked * 8 * 
+			int num_bits_ackd_interval = (params->base - prev_base) * (MAX_PKT_SIZE - sizeof(SenderDataHeader) * 8);
+			prev_base = params->base;
+			float mb_acked_interval = num_bits_ackd_interval / 1e6;
+			elapsed_interval = ELAPSED(prev_time, cur_time);
+			params->speed = params->MBacked / elapsed_interval; // in Mbps
+			prev_time = cur_time;
+		}
+
+
 		//  B 18 ( 0.0 MB) N 19 T 0 F 0 W 1 S 0.105 Mbps RTT 0.102
-		printf("[%4d] B %6d ( %.1f MB) N %6d T %4d F%4d W %4d S %.3f Mbps RTT %.3f \n", int(elapsed), params->base, params->MBacked, params->nextSeq,
+		printf("[%4d] B %4d ( %.1f MB) N %4d T %4d F%4d W %4d S %.3f Mbps RTT %.3f \n", int(elapsed), params->base, params->MBacked, params->nextSeq,
 			params->T, params->F, params->windowSize, params->speed,
 			params->RTT);
 		
@@ -447,6 +461,7 @@ int SenderSocket::Send(char* sendBuf, int numBytes)
 		}
 		else {
 			//ret is 0
+			params.T += 1;
 			count += 1;
 		}
 
