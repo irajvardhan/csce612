@@ -34,7 +34,7 @@ void showStats(hrc::time_point obj_st_time, SharedParameters* params) {
 
 		if (params->base > 0) {
 			// num_bytes_acked * 8 * 
-			int num_bits_ackd_interval = (params->base - prev_base) * (MAX_PKT_SIZE - sizeof(SenderDataHeader) * 8);
+			int num_bits_ackd_interval = (params->base - prev_base) * (MAX_PKT_SIZE - sizeof(SenderDataHeader)) * 8;
 			prev_base = params->base;
 			float mb_acked_interval = num_bits_ackd_interval / 1e6;
 			elapsed_interval = ELAPSED(prev_time, cur_time);
@@ -247,7 +247,7 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
     return TIMEOUT;
 }
 
-int SenderSocket::Close()
+int SenderSocket::Close(float *estimated_RTT)
 {
 	if (!is_conn_open) {
 		return NOT_CONNECTED;
@@ -332,14 +332,14 @@ int SenderSocket::Close()
 			// time elapsed since constructor of this class was called
 			elapsed = ELAPSED(obj_st_time, fin_ack_time); // in seconds
 
-			if (debug_mode)
-				printf("[ %.3f ] <-- FIN-ACK %d window %d\n", elapsed, rcv_hdr->ackSeq, rcv_hdr->recvWnd);
+			//if (debug_mode)
+			//printf("[ %.3f ] <-- FIN-ACK %d window %d\n", elapsed, rcv_hdr->ackSeq, rcv_hdr->recvWnd);
+			printf("[%.2f]\t<-- FIN-ACK %d %X\n", elapsed, rcv_hdr->ackSeq, rcv_hdr->recvWnd);
 			
 			// The connection can now be considered closed
 			is_conn_open = false;
-			
-			statDone = true;
-			cv.notify_all();
+
+			*estimated_RTT = params.RTT;
 
 			return STATUS_OK;
 
@@ -445,6 +445,8 @@ int SenderSocket::Send(char* sendBuf, int numBytes)
 				// RTO = estRTT + 4 * max (devRTT, 0.010);
 				my_rto = params.RTT + 4 * max(params.devRTT, 0.010);
 
+
+
 				return STATUS_OK;
 
 			}
@@ -472,8 +474,10 @@ int SenderSocket::Send(char* sendBuf, int numBytes)
 }
 
 void SenderSocket::stopStats() {
+	statDone = true;
+	cv.notify_all();
 	//cv.notify_all();
-	//this_thread::sleep_for(chrono::seconds(2));
+	this_thread::sleep_for(chrono::milliseconds(200));
 	if (statsThread.joinable()) {
 		statsThread.join();
 	}

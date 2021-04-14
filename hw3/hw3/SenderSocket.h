@@ -32,7 +32,7 @@ public:
 	SenderSocket();
 	int Open(char* targetHost, int rcvPort, int senWindow, LinkProperties* lp);
 
-	int Close();
+	int Close(float* estimated_RTT);
 
 	// temp todo remove
 	void stopStats();

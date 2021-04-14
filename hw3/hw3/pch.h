@@ -46,6 +46,7 @@ using hrc = high_resolution_clock;
 #include <mutex>
 #include <condition_variable>
 #include <math.h>
+#include "Checksum.h"
 #include "LinkProperties.h"
 #include "PacketHeaders.h"
 #include "SenderSocket.h"
