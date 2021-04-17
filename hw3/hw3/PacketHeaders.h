@@ -37,7 +37,7 @@ public:
 	DWORD ackSeq; // ack value = next expected sequence
 };
 
-class SenderDataPktHeader {
+class SenderDataPkt {
 public:
 	SenderDataHeader sdh;
 	//char* pktBuf;
@@ -56,6 +56,9 @@ public:
 	float RTT;
 	float devRTT;
 
+	hrc::time_point obj_st_time;
+	HANDLE event_quit;
+	HANDLE mtx;
 	SharedParameters();
 
 };

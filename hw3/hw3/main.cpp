@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 	hrc::time_point after_transfer = hrc::now();
 	elapsed = ELAPSED(before_transfer, after_transfer);
 	
-	ss.stopStats();
+	//ss.stopStats();
 
 	float estRTT;
 	if ((status = ss.Close(&estRTT)) != STATUS_OK) {

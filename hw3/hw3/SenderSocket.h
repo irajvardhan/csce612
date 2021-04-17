@@ -25,6 +25,24 @@ public:
 	bool is_conn_open;
 
 	bool debug_mode;
+
+	HANDLE th_stats, th_worker;
+	HANDLE empty;
+	HANDLE full;
+
+	SenderDataPkt* pkts;
+	int* pkt_num_bytes;
+	int dup_acks;
+	hrc::time_point* pkt_sent_time;
+	int* pkt_num_attempts;
+
+	int sndBase; // has to be synced with shared copy stored in SharedParameters
+	int W; // window size
+	int lastReleased;
+
+	WSAEVENT sock_recv_ready;
+	WSANETWORKEVENTS nw_events;
+
 	// --done-- //
 
 	
@@ -38,5 +56,9 @@ public:
 	void stopStats();
 
 	int Send(char* sendBuf, int numBytes);
+
+	int SendToUtil(int next_to_send);
+
+	int ReceiveACK();
 
 };

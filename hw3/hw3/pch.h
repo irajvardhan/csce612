@@ -11,6 +11,8 @@
 #ifndef PCH_H
 #define PCH_H
 
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 // The full list of errors that SocketSender functions should be able to produce is given by
 #define STATUS_OK 0 // no error
 #define ALREADY_CONNECTED 1 // second call to ss.Open() without closing connection
@@ -29,6 +31,7 @@
 #define MAGIC_PORT 22345 // receiver listens on this port
 #define MAX_PKT_SIZE (1500-28) // maximum UDP packet size accepted by receiver
 
+#define FAST_RTX_DUP_THRESH 3
 
 // using chrono high_resolution_clock
 #include <time.h>
@@ -41,7 +44,8 @@ using hrc = high_resolution_clock;
 
 // add headers that you want to pre-compile here
 #include <iostream>
-#include <Windows.h>
+//#include <Windows.h> // cant use this in conjunction with winsock2.h
+#include <winsock2.h>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
