@@ -133,7 +133,8 @@ DWORD WINAPI runWorker(LPVOID lpParams) {
 		int signal = WaitForMultipleObjects(3, arr_handles, false, timeout);
 
 		if (signal == WAIT_OBJECT_0) {
-			WSAEnumNetworkEvents(ss->sock, ss->sock_recv_ready, &ss->nw_events); // Without this line ss->ReceiveACK() keeps getting called
+			// Ref: https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-wsaenumnetworkevents
+			//WSAEnumNetworkEvents(ss->sock, ss->sock_recv_ready, &ss->nw_events); // Without this line ss->ReceiveACK() keeps getting called
 			ss->ReceiveACK();
 		}
 		else if (signal == WAIT_OBJECT_0 + 1) {
@@ -339,7 +340,7 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 	server.sin_family = AF_INET;
 	server.sin_port = htons(rcv_port);
 
-	float rto = 1.0;
+	float rto = 6.0; // todo change back to 1.0
 	my_lp = *lp;
 	
 	SenderSynHeader ss_hdr;
@@ -435,7 +436,13 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 			* Create Semaphores and events for synchronization
 			*/
 
-			sock_recv_ready = WSACreateEvent();
+			//sock_recv_ready = WSACreateEvent();
+			sock_recv_ready = CreateEvent(
+				NULL,	// security attributes (default)
+				false,	// manual-reset event
+				false,	// nonsignaled initial state
+				NULL	// name
+			);
 
 			empty = CreateSemaphore(
 				NULL,           // security attributes (default)
@@ -723,6 +730,7 @@ int SenderSocket::ReceiveACK()
 	computed only based on packet x + y – 1 and only if there were no prior retransmissions of base x
 
 	TODO check how to factor in no prior retransmissions of base x
+
 	*/
 	// if base wasn't retransmitted
 	if(y>sndBase && pkt_num_attempts[(y-1)%W]==1 && pkt_num_attempts[oldBase % W] == 1){
@@ -737,7 +745,9 @@ int SenderSocket::ReceiveACK()
 		params.devRTT = ((1 - beta) * params.devRTT) + (beta * abs(sampleRTT - params.RTT));
 
 		if (abs(params.RTT - oldRTT) > 1.0) {
-			printf("oldRTT:%.3f newRTT:%.3f\n", oldRTT, params.RTT);
+			if (debug_mode()) {
+				printf("oldRTT:%.3f newRTT:%.3f\n", oldRTT, params.RTT);
+			}
 		}
 
 		ReleaseMutex(params.mtx);
