@@ -48,20 +48,6 @@ DWORD WINAPI showStats(LPVOID lpParams) {
 		elapsed = ELAPSED(params->obj_st_time, cur_time);
 		int num_bits_received_interval = (params->base - prev_base) * (MAX_PKT_SIZE - sizeof(SenderDataHeader)) * 8;
 		
-		// TODO remove this
-		if (params->base == prev_base) {
-			count_of_same++;
-			
-			if (count_of_same >= 3) {
-				//printf("Something went wrong\n");
-				//exit(0);
-			}
-
-		}
-		else {
-			count_of_same = 0;
-		}
-		
 		prev_base = params->base;
 		elapsed_interval = ELAPSED(prev_time, cur_time);
 		prev_time = cur_time;
@@ -73,16 +59,16 @@ DWORD WINAPI showStats(LPVOID lpParams) {
 
 		
 		//  B 18 ( 0.0 MB) N 19 T 0 F 0 W 1 S 0.105 Mbps RTT 0.102
-		printf("[%4d] B %8d ( %4.1f MB) N %8d T %4d F%4d W %4d S %.3f Mbps RTT %.3f | devRTT: %.3f timeout: %d\n", int(elapsed), params->base, params->MBacked, params->nextSeq,
-			params->T, params->F, params->windowSize, params->speed,
-			params->RTT
-			,params->devRTT, params->temp_rto //remove this
-		);
+		//printf("[%4d] B %8d ( %4.1f MB) N %8d T %4d F%4d W %4d S %.3f Mbps RTT %.3f | devRTT: %.3f timeout: %d\n", int(elapsed), params->base, params->MBacked, params->nextSeq,
+		//	params->T, params->F, params->windowSize, params->speed,
+		//	params->RTT
+		//	,params->devRTT, params->temp_rto //remove this
+		//);
 
-		/*printf("[%4d] B %8d ( %5.1f MB) N %8d T %4d F%4d W %4d S %4.3f Mbps RTT %.3f\n", int(elapsed), params->base, params->MBacked, params->nextSeq,
+		printf("[%4d] B %8d ( %5.1f MB) N %8d T %4d F%4d W %4d S %4.3f Mbps RTT %.3f\n", int(elapsed), params->base, params->MBacked, params->nextSeq,
 			params->T, params->F, params->windowSize, params->speed,
 			params->RTT
-		);*/
+		);
 	}
 	
 	//printf("stats thread ended\n");
