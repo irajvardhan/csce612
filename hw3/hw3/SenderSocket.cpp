@@ -14,61 +14,104 @@ bool statDone = false;
 float alpha = 0.125; // used for RTO computation
 float beta = 0.25;
 
+bool SenderSocket::debug_mode() {
+	int r = rand() % 100000;
+	if (r == 0) {
+		return false;
+	}
+	else {
+		return false;
+	}
+}
+
 bool cond_check() {
 	return statDone == true;
 }
-
-
-//DWORD WINAPI StatsRun(LPVOID lpPara)
-//{
-//	Parameters* p = (Parameters*)lpPara; // shared parameters
-//	while (WaitForSingleObject(p->eventQuit, 2000) == WAIT_TIMEOUT)
-//	{
-//		// print
-//	}
-//}
 
 DWORD WINAPI showStats(LPVOID lpParams) {
 
 	SharedParameters* params = (SharedParameters*)lpParams;
 	hrc::time_point cur_time;
-double elapsed;
-double elapsed_interval;
-unique_lock<mutex> lck(mtx);
+	double elapsed;
+	double elapsed_interval;
+	unique_lock<mutex> lck(mtx);
 
-int prev_base = 0;
-hrc::time_point prev_time = params->obj_st_time;
+	int prev_base = 0;
 
-//while (cv.wait_for(lck, 2s, cond_check) == false) {
-while (WaitForSingleObject(params->event_quit, 2000) == WAIT_TIMEOUT) {
-	cur_time = hrc::now();
-	elapsed = ELAPSED(params->obj_st_time, cur_time);
+	hrc::time_point prev_time = params->obj_st_time;
 
-	if (params->base > 0) {
-		// num_bytes_acked * 8 * 
-		int num_bits_ackd_interval = (params->base - prev_base) * (MAX_PKT_SIZE - sizeof(SenderDataHeader)) * 8;
+	int count_of_same = 0;
+
+	//while (cv.wait_for(lck, 2s, cond_check) == false) {
+	while (WaitForSingleObject(params->event_quit, 2000) == WAIT_TIMEOUT) {
+		cur_time = hrc::now();
+		elapsed = ELAPSED(params->obj_st_time, cur_time);
+		int num_bits_received_interval = (params->base - prev_base) * (MAX_PKT_SIZE - sizeof(SenderDataHeader)) * 8;
+		
+		// TODO remove this
+		if (params->base == prev_base) {
+			count_of_same++;
+			
+			if (count_of_same >= 3) {
+				//printf("Something went wrong\n");
+				//exit(0);
+			}
+
+		}
+		else {
+			count_of_same = 0;
+		}
+		
 		prev_base = params->base;
-		float mb_acked_interval = num_bits_ackd_interval / 1e6;
 		elapsed_interval = ELAPSED(prev_time, cur_time);
-		params->speed = params->MBacked / elapsed_interval; // in Mbps
 		prev_time = cur_time;
+		
+		//todo check if we need to wrap this with mutex
+		WaitForSingleObject(params->mtx, INFINITE);
+		params->speed = (num_bits_received_interval/1e6) / elapsed_interval; // in Mbps
+		ReleaseMutex(params->mtx);
+
+		
+		//  B 18 ( 0.0 MB) N 19 T 0 F 0 W 1 S 0.105 Mbps RTT 0.102
+		printf("[%4d] B %8d ( %4.1f MB) N %8d T %4d F%4d W %4d S %.3f Mbps RTT %.3f | devRTT: %.3f timeout: %d\n", int(elapsed), params->base, params->MBacked, params->nextSeq,
+			params->T, params->F, params->windowSize, params->speed,
+			params->RTT
+			,params->devRTT, params->temp_rto //remove this
+		);
+
+		/*printf("[%4d] B %8d ( %5.1f MB) N %8d T %4d F%4d W %4d S %4.3f Mbps RTT %.3f\n", int(elapsed), params->base, params->MBacked, params->nextSeq,
+			params->T, params->F, params->windowSize, params->speed,
+			params->RTT
+		);*/
 	}
+	
+	//printf("stats thread ended\n");
 
-
-	//  B 18 ( 0.0 MB) N 19 T 0 F 0 W 1 S 0.105 Mbps RTT 0.102
-	printf("[%4d] B %4d ( %.1f MB) N %4d T %4d F%4d W %4d S %.3f Mbps RTT %.3f \n", int(elapsed), params->base, params->MBacked, params->nextSeq,
-		params->T, params->F, params->windowSize, params->speed,
-		params->RTT);
-
-}
-
-return 0;
+	return 0;
 
 }
 
 DWORD WINAPI runWorker(LPVOID lpParams) {
 
 	SenderSocket* ss = (SenderSocket*)lpParams;
+
+	/*
+	* the UDP sender/receiver buffer inside the Windows kernel is configured to support
+	only 8 KB of unprocessed data. You can achieve higher outbound performance and prevent
+	packet loss in the inbound direction by increasing both buffers,
+	*/
+	int kernel_buffer = 20e6;
+	if (setsockopt(ss->sock, SOL_SOCKET, SO_RCVBUF, (char*)&kernel_buffer, sizeof(int)) == SOCKET_ERROR) {
+		printf("Failed to increase inbound kernel buffer with %d", WSAGetLastError());
+	}
+
+	kernel_buffer = 20e6; //20 meg
+	if (setsockopt(ss->sock, SOL_SOCKET, SO_SNDBUF, (char*)&kernel_buffer, sizeof(int)) == SOCKET_ERROR) {
+		printf("Failed to increase outbound kernel buffer with %d", WSAGetLastError());
+	}
+
+	// then setting your worker thread to time - critical priority
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 
 	// Associate the socket receive ready event with the socket (sock)
 	if (WSAEventSelect(ss->sock, ss->sock_recv_ready, FD_READ) == SOCKET_ERROR)
@@ -77,7 +120,9 @@ DWORD WINAPI runWorker(LPVOID lpParams) {
 		return 0;
 	}
 
-	HANDLE arr_handles[] = { ss->sock_recv_ready, ss->full, ss->params.event_quit }; // todo ss->params.event_quit
+	//HANDLE arr_handles[] = { ss->sock_recv_ready, ss->full}; // todo check if ss->params.event_quit is needed
+	HANDLE arr_handles[] = { ss->sock_recv_ready, ss->full, ss->params.worker_quit }; // todo ss->params.event_quit
+
 	DWORD timeout;
 
 	// This will be incremented by worked thread from here onwards
@@ -88,7 +133,17 @@ DWORD WINAPI runWorker(LPVOID lpParams) {
 		/*if (pending packets)
 			timeout = timerExpire - cur_time;
 		else*/
-		timeout = INFINITE;
+
+		// TODO find out what should be the condition here to check for pending packets
+		if (ss->params.nextSeq > 1) {
+			timeout = 1000*ss->my_rto; //my_rto is in sec so we need to convert to ms as expecte by WaitForMultipleObjects
+			ss->params.temp_rto = timeout;
+		}
+		else {
+			timeout = INFINITE;
+		}
+		
+		//int signal = WaitForMultipleObjects(2, arr_handles, false, timeout);
 		int signal = WaitForMultipleObjects(3, arr_handles, false, timeout);
 
 		if (signal == WAIT_OBJECT_0) {
@@ -98,46 +153,63 @@ DWORD WINAPI runWorker(LPVOID lpParams) {
 		else if (signal == WAIT_OBJECT_0 + 1) {
 			int res = ss->SendToUtil(next_to_send);
 			next_to_send++;
+
+			//todo check if this should be done here or anywhere else
+			// todo check if mutex needed
+
+			WaitForSingleObject(ss->params.mtx, INFINITE);
+			ss->params.nextSeq += 1;
+			ReleaseMutex(ss->params.mtx);
+
 		}
 		else if (signal == WAIT_TIMEOUT) {
-			if (ss->debug_mode) {
-				printf("WAIT_TIMEOUT condition of runWorker\n");
+			//if (ss->debug_mode()) 
+				//printf("WAIT_TIMEOUT condition of runWorker\n");
+			// a timeout occurred 
 
+			// TODO check if this is the right way of knowing if we are done sending everything
+			if (ss->params.populating_complete and ss->sndBase == ss->seq) {
+				return 1;
+			}
 
-				// TODO check if we are done sending everything
-
-				// a timeout occurred 
-				// check if we are under the threshold of attempts
-				if (ss->pkt_num_attempts[ss->sndBase % ss->W] < MAX_ATTEMPTS_OTHER) {
-
-					if (ss->SendToUtil(ss->sndBase) != 1) {
-						return FAILED_OTHER;
-					}
-					WaitForSingleObject(ss->params.mtx, INFINITE);
-					ss->params.T += 1;
-					ReleaseMutex(ss->params.mtx);
-
+			// check if we are under the threshold of attempts
+			if (ss->pkt_num_attempts[ss->sndBase % ss->W] < MAX_ATTEMPTS_OTHER) {
+				if(ss->debug_mode())
+					printf("WAIT_TIMEOUT: resending %d\n",ss->sndBase);
+				
+				if (ss->SendToUtil(ss->sndBase) != 1) {
+					return FAILED_OTHER;
 				}
-				else {
-					printf("MAX ATTEMPTS crossed for sndBase %d", ss->sndBase % ss->W);
-					return TIMEOUT;
-				}
+				
+				//todo check if mutex needed
+				WaitForSingleObject(ss->params.mtx, INFINITE);
+				ss->params.T += 1;
+				ReleaseMutex(ss->params.mtx);
 
+			}
+			else {
+				printf("MAX ATTEMPTS crossed for sndBase %d\n", ss->sndBase % ss->W);
+				exit(0); // todo check if we should end here
+				//return TIMEOUT;
 			}
 
 		}
-		else {
-			if (ss->debug_mode) {
-				printf("Default condition of runWorker\n");
-			}
-
+		else if (signal == WAIT_OBJECT_0 + 2) {
+			// worker_quit was signalled
+			return 1;
+		}else {
+			//WAIT_FAILED
+			//printf("Worker thread got WAIT_FAILED with error %d\n", GetLastError());
+			
 			/*
 			* We can't stop the worker thread until we have received all the pending ACKS
 			* for data packets sent.
 			* A way to know this is by comparing the base with the next seq number. If they
 			* are the same, we can say we are done receiving all required ACKs.
 			*/
-			printf("sndBase:%d seq:%d\n", ss->sndBase, ss->seq);
+			if(ss->debug_mode())
+				printf("sndBase:%d seq:%d\n", ss->sndBase, ss->seq);
+			
 			if(ss->sndBase == ss->seq){
 				return 1;
 			}
@@ -147,45 +219,11 @@ DWORD WINAPI runWorker(LPVOID lpParams) {
 	return 0;
 }
 
-//void showStats(SharedParameters* params) {
-//	hrc::time_point cur_time;
-//	double elapsed;
-//	double elapsed_interval;
-//	unique_lock<mutex> lck(mtx);
-//
-//	int prev_base = 0;
-//	hrc::time_point prev_time = params->obj_st_time;
-//
-//	while (cv.wait_for(lck, 2s, cond_check) == false) {
-//
-//		cur_time = hrc::now();
-//		elapsed = ELAPSED(params->obj_st_time, cur_time);
-//
-//		if (params->base > 0) {
-//			// num_bytes_acked * 8 * 
-//			int num_bits_ackd_interval = (params->base - prev_base) * (MAX_PKT_SIZE - sizeof(SenderDataHeader)) * 8;
-//			prev_base = params->base;
-//			float mb_acked_interval = num_bits_ackd_interval / 1e6;
-//			elapsed_interval = ELAPSED(prev_time, cur_time);
-//			params->speed = params->MBacked / elapsed_interval; // in Mbps
-//			prev_time = cur_time;
-//		}
-//
-//
-//		//  B 18 ( 0.0 MB) N 19 T 0 F 0 W 1 S 0.105 Mbps RTT 0.102
-//		printf("[%4d] B %4d ( %.1f MB) N %4d T %4d F%4d W %4d S %.3f Mbps RTT %.3f \n", int(elapsed), params->base, params->MBacked, params->nextSeq,
-//			params->T, params->F, params->windowSize, params->speed,
-//			params->RTT);
-//		
-//	}
-//
-//}
-
 SenderSocket::SenderSocket()
 {
 	obj_st_time = hrc::now();        // get start time point
 	is_conn_open = false;
-	debug_mode = true;
+	is_debug_mode = false;
 	seq = 0;
 	sndBase = 0;
 	lastReleased = 0;
@@ -207,6 +245,13 @@ SenderSocket::SenderSocket()
 		NULL);             // unnamed
 
 	params.event_quit = CreateEvent(
+		NULL,	// security attributes (default)
+		true,	// manual-reset event
+		false,	// nonsignaled initial state
+		NULL	// name
+	);
+
+	params.worker_quit = CreateEvent(
 		NULL,	// security attributes (default)
 		true,	// manual-reset event
 		false,	// nonsignaled initial state
@@ -261,7 +306,7 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 	if (sock == INVALID_SOCKET) {
 		cur_time = hrc::now();
 		elapsed = ELAPSED(obj_st_time, cur_time);
-		if(debug_mode)
+		if(debug_mode())
 			printf("[ %.3f ] --> socket open failed with %d\n", elapsed, WSAGetLastError());
 		//delete[] buf;
 		return INVALID_SOCKET;
@@ -276,7 +321,7 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 	if (bind(sock, (struct sockaddr*)&local, sizeof(local)) == SOCKET_ERROR) {
 		cur_time = hrc::now();
 		elapsed = ELAPSED(obj_st_time, cur_time);
-		if(debug_mode)
+		if(debug_mode())
 			printf("[ %.3f ] --> socket bind failed with %d\n", elapsed, WSAGetLastError());
 		//delete[] buf;
 		return BIND_SOCKET_FAILED;
@@ -292,7 +337,7 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 		{
 			cur_time = hrc::now();
 			elapsed = ELAPSED(obj_st_time, cur_time);
-			if(debug_mode)
+			if(debug_mode())
 				printf("[ %.3f ] --> target %s is invalid \n", elapsed, target_host);
 			return INVALID_NAME;
 		}
@@ -325,14 +370,14 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 		syn_time = hrc::now();
 		elapsed = ELAPSED(obj_st_time, syn_time);
 		
-		if (debug_mode)
+		if (debug_mode())
 			printf("[ %.3f ] --> SYN %d (attempt %d of %d, RTO %.3f) to %s\n", elapsed, ss_hdr.sdh.seq, count, MAX_ATTEMPTS_SYN, rto, inet_ntoa(server.sin_addr));
 		char* header_buf = (char*)&ss_hdr;
 		// no connect needed, just send
 		if (sendto(sock, header_buf, sizeof(ss_hdr), 0, (struct sockaddr*)&server, int(sizeof(server))) == SOCKET_ERROR) {
 			cur_time = hrc::now();
 			elapsed = ELAPSED(obj_st_time, cur_time);
-			if (debug_mode)
+			if (debug_mode())
 				printf("[ %.3f ] --> failed sendto with %d\n", elapsed, WSAGetLastError());
 			//delete[] buf;
 			return FAILED_SEND;
@@ -362,7 +407,7 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 			if (recv_res == SOCKET_ERROR) {
 				cur_time = hrc::now();
 				elapsed = ELAPSED(obj_st_time, cur_time);
-				if (debug_mode)
+				if (debug_mode())
 					printf("[ %.3f ] <-- failed recvfrom with %d\n", elapsed, WSAGetLastError());
 				//delete[] buf;
 				//delete[] recvBuf;
@@ -393,7 +438,7 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 			my_rto = rto;
 			params.RTT = my_rto;
 
-			if (debug_mode)
+			if (debug_mode())
 				printf("[ %.3f ] <-- SYN-ACK %d window %d; setting initial RTO to %.3f\n", elapsed, rcv_hdr->ackSeq, rcv_hdr->recvWnd, rto);
 
 			// We mark the connection open on verifying the SYN-ACK received
@@ -412,8 +457,10 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 				W,				// maximum count
 				NULL);          // unnamed semaphore
 
-			int lastReleased = min(W, rcv_hdr->recvWnd);
+			lastReleased = min(W, rcv_hdr->recvWnd);
 			ReleaseSemaphore(empty, lastReleased, NULL);
+			if (debug_mode())
+				printf("ReleaseSemaphore empty by lastReleased = %d\n", lastReleased);
 
 			full = CreateSemaphore(
 				NULL,           // security attributes (default)
@@ -437,7 +484,7 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 			// ERROR
 			cur_time = hrc::now();
 			elapsed = ELAPSED(obj_st_time, cur_time);
-			if (debug_mode)
+			if (debug_mode())
 				printf("[ %.3f ] <-- failed with %d\n", elapsed, WSAGetLastError());
 			return FAILED_OTHER;
 		}
@@ -477,14 +524,14 @@ int SenderSocket::Close(float *estimated_RTT)
 		fin_time = hrc::now();
 		elapsed = ELAPSED(obj_st_time, fin_time);
 
-		if (debug_mode)
+		if (debug_mode())
 			printf("[ %.3f ] --> FIN %d (attempt %d of %d, RTO %.3f) to %s\n", elapsed, ss_hdr.sdh.seq, count, MAX_ATTEMPTS_OTHER, rto, inet_ntoa(server.sin_addr));
 		char* header_buf = (char*)&ss_hdr;
 		// no connect needed, just send
 		if (sendto(sock, header_buf, sizeof(ss_hdr), 0, (struct sockaddr*)&server, int(sizeof(server))) == SOCKET_ERROR) {
 			cur_time = hrc::now();
 			elapsed = ELAPSED(obj_st_time, cur_time);
-			if (debug_mode)
+			if (debug_mode())
 				printf("[ %.3f ] --> failed sendto with %d\n", elapsed, WSAGetLastError());
 			//delete[] buf;
 			return FAILED_SEND;
@@ -514,7 +561,7 @@ int SenderSocket::Close(float *estimated_RTT)
 			if (recv_res == SOCKET_ERROR) {
 				cur_time = hrc::now();
 				elapsed = ELAPSED(obj_st_time, cur_time);
-				if (debug_mode)
+				if (debug_mode())
 					printf("[ %.3f ] <-- failed recvfrom with %d\n", elapsed, WSAGetLastError());
 				//delete[] buf;
 				//delete[] recvBuf;
@@ -537,9 +584,9 @@ int SenderSocket::Close(float *estimated_RTT)
 			// time elapsed since constructor of this class was called
 			elapsed = ELAPSED(obj_st_time, fin_ack_time); // in seconds
 
-			//if (debug_mode)
+			//if (debug_mode())
 			//printf("[ %.3f ] <-- FIN-ACK %d window %d\n", elapsed, rcv_hdr->ackSeq, rcv_hdr->recvWnd);
-			printf("[%.2f]\t<-- FIN-ACK %d %X\n", elapsed, rcv_hdr->ackSeq, rcv_hdr->recvWnd);
+			printf("[%.2f] <-- FIN-ACK %d %X\n", elapsed, rcv_hdr->ackSeq, rcv_hdr->recvWnd);
 			
 			// The connection can now be considered closed
 			is_conn_open = false;
@@ -553,7 +600,7 @@ int SenderSocket::Close(float *estimated_RTT)
 			// ERROR
 			cur_time = hrc::now();
 			elapsed = ELAPSED(obj_st_time, cur_time);
-			if (debug_mode)
+			if (debug_mode())
 				printf("[ %.3f ] <-- failed with %d\n", elapsed, WSAGetLastError());
 			return FAILED_OTHER;
 		}
@@ -592,112 +639,18 @@ int SenderSocket::Send(char* sendBuf, int numBytes)
 	pkts[slot] = sender_pkt;
 	pkt_num_bytes[slot] = numBytes;
 	pkt_sent_time[slot] = hrc::now();
+	pkt_num_attempts[slot] = 0;
+
+	if (debug_mode()) {
+		printf("pkts[%d] now contains packet with seq %d\n", slot, seq);
+		printf("inc seq from %d to %d\n", seq,seq+1);
+	}
 
 	seq++;
-
+	
 	ReleaseSemaphore(full, 1, NULL);
 
 	return 0;
-
-	/* Unused below */
-
-	char* pkt_buf = (char*)&sender_pkt;
-
-	int count = 1;
-	while (count < MAX_ATTEMPTS_OTHER) {
-		send_time = hrc::now();
-		elapsed = ELAPSED(obj_st_time, send_time);
-		if (debug_mode)
-			printf("[ %.3f ] --> SEND %d (attempt %d of %d, RTO %.3f) to %s\n", elapsed, seq, count, MAX_ATTEMPTS_OTHER, my_rto, inet_ntoa(server.sin_addr));
-
-		// no connect needed, just send
-		if (sendto(sock, pkt_buf, sizeof(SenderDataHeader) + numBytes, 0, (struct sockaddr*)&server, int(sizeof(server))) == SOCKET_ERROR) {
-			cur_time = hrc::now();
-			elapsed = ELAPSED(obj_st_time, cur_time);
-			if(debug_mode)
-				printf("[ %.3f ] --> failed sendto with %d\n", elapsed, WSAGetLastError());
-			//delete[] buf;
-			return FAILED_SEND;
-		}
-
-		// Now prepare to receive
-		fd_set fd;
-		FD_ZERO(&fd);
-		FD_SET(sock, &fd);
-		timeval tp;
-		struct sockaddr_in response;
-		int size = sizeof(response);
-
-		tp.tv_sec = (long)my_rto;
-		tp.tv_usec = (my_rto - tp.tv_sec) * 1000000;
-
-		int ret = select(0, &fd, NULL, NULL, &tp);
-		int recv_res = 0; // number of bytes received
-
-		char* recv_buf = new char[sizeof(ReceiverHeader)];
-
-		if (ret > 0) {
-			recv_res = recvfrom(sock, recv_buf, sizeof(ReceiverHeader), 0, (struct sockaddr*)&response, &size);
-
-			// error processing
-			if (recv_res == SOCKET_ERROR) {
-				cur_time = hrc::now();
-				elapsed = ELAPSED(obj_st_time, cur_time);
-				if (debug_mode)
-					printf("[ %.3f ] <-- failed recvfrom with %d\n", elapsed, WSAGetLastError());
-				//delete[] buf;
-				//delete[] recvBuf;
-				return FAILED_RECV;
-			}
-
-			ReceiverHeader* rcv_hdr = (ReceiverHeader*)recv_buf;
-
-			send_ack_time = hrc::now();        // get end time point
-
-			int y = rcv_hdr->ackSeq;
-
-			if (y == params.base + 1) {
-				// successful ACK
-				seq += 1;
-				params.base = seq;
-				params.nextSeq = params.base + 1; // TODO with W>1 this will change in part 3
-				params.MBacked = (params.MBacked) + (numBytes*1.0) / 1000000;
-
-				elapsed = ELAPSED(send_time, send_ack_time); // in seconds
-				double sampleRTT = elapsed;
-				//printf("\nsampleRTT %.3f\n", sampleRTT);
-				params.RTT = (1 - alpha) * params.RTT + alpha * sampleRTT;
-				params.devRTT = (1 - beta) * params.devRTT + beta * abs(sampleRTT - params.RTT);
-				
-				// RTO = estRTT + 4 * max (devRTT, 0.010);
-				my_rto = params.RTT + 4 * max(params.devRTT, 0.010);
-
-
-
-				return STATUS_OK;
-
-			}
-			else {
-				count += 1;
-			}
-		}
-		else if (ret < 0) {
-			// ERROR
-			cur_time = hrc::now();
-			elapsed = ELAPSED(obj_st_time, cur_time);
-			printf("[ %.3f ] <-- failed with %d\n", elapsed, WSAGetLastError());
-			return FAILED_OTHER;
-		}
-		else {
-			//ret is 0
-			params.T += 1;
-			count += 1;
-		}
-
-	}
-
-	// TODO Check what should be returned here
-	return TIMEOUT;
 }
 
 int SenderSocket::SendToUtil(int next_to_send)
@@ -707,20 +660,25 @@ int SenderSocket::SendToUtil(int next_to_send)
 	int idx = next_to_send % W;
 	SenderDataPkt sender_pkt = pkts[idx];
 	
+	/*WaitForSingleObject(params.mtx, INFINITE);
+	pkt_sent_time[idx] = hrc::now();
+	ReleaseMutex(params.mtx);*/
+
 	char* pkt_buf = (char*)&sender_pkt;
 	int numBytes = pkt_num_bytes[idx];
+	
 
-	if (debug_mode) {
-		printf("SendToUtil called for %d\n", next_to_send);
-	}
-
-	printf("--> sending pkt with seq %d\n", sender_pkt.sdh.seq);
-
+	//if (debug_mode()) {
+	//printf("--> next_to_send=%d and seq=%d\n", next_to_send, sender_pkt.sdh.seq);
+	//}
+	// todo remove this
+	//std::this_thread::sleep_for(0.5ms);
+	
 	// no connect needed, just send
 	if (sendto(sock, pkt_buf, sizeof(SenderDataHeader) + numBytes, 0, (struct sockaddr*)&server, int(sizeof(server))) == SOCKET_ERROR) {
 		cur_time = hrc::now();
 		elapsed = ELAPSED(obj_st_time, cur_time);
-		if (debug_mode)
+		if (debug_mode())
 			printf("[ %.3f ] --> failed sendto with %d\n", elapsed, WSAGetLastError());
 		//delete[] buf;
 		return FAILED_SEND;
@@ -751,7 +709,7 @@ int SenderSocket::ReceiveACK()
 	if (recv_res == SOCKET_ERROR) {
 		cur_time = hrc::now();
 		elapsed = ELAPSED(obj_st_time, cur_time);
-		if (debug_mode)
+		if (debug_mode())
 			printf("[ %.3f ] <-- failed recvfrom with %d\n", elapsed, WSAGetLastError());
 		//delete[] buf;
 		//delete[] recvBuf;
@@ -763,51 +721,90 @@ int SenderSocket::ReceiveACK()
 	send_ack_time = hrc::now();        // get end time point
 
 	int y = rcv_hdr->ackSeq;
-	printf("<-- ACK %d\n", y);
+	if(debug_mode())
+		printf("<-- ACK %d\n", y);
 
-	WaitForSingleObject(params.mtx, INFINITE);
+	//Todo check if this needs to be done
+	/*WaitForSingleObject(params.mtx, INFINITE);
 	params.nextSeq = y;
-	ReleaseMutex(params.mtx);
+	ReleaseMutex(params.mtx);*/
 
+	int oldBase = sndBase;
+
+	/*
+	*
+	Third, upon receiving an ACK that moves the base from x to x + y, an RTT sample is
+	computed only based on packet x + y – 1 and only if there were no prior retransmissions of base x
+
+	TODO check how to factor in no prior retransmissions of base x
+	*/
+	// if base wasn't retransmitted
+	if(y>sndBase && pkt_num_attempts[(y-1)%W]==1 && pkt_num_attempts[oldBase % W] == 1){
+		send_time = pkt_sent_time[(y - 1) % W];
+		elapsed = ELAPSED(send_time, send_ack_time); // in seconds
+		double sampleRTT = elapsed;
+
+		float oldRTT = params.RTT;
+		//todo check if mutex needed
+		WaitForSingleObject(params.mtx, INFINITE);
+		params.RTT = ((1 - alpha) * params.RTT) + (alpha * sampleRTT);
+		params.devRTT = ((1 - beta) * params.devRTT) + (beta * abs(sampleRTT - params.RTT));
+
+		if (abs(params.RTT - oldRTT) > 1.0) {
+			printf("oldRTT:%.3f newRTT:%.3f\n", oldRTT, params.RTT);
+		}
+
+		ReleaseMutex(params.mtx);
+
+		
+
+		// //RTO = estRTT + 4 * max (devRTT, 0.010);
+		my_rto = params.RTT + 4 * max(params.devRTT, 0.010); //TODO should we set RTO here this way?
+	}
 
 	if (y > sndBase) {
 		// successful ACK
-		if (debug_mode)
-			printf("successful ACK\n");
-
-		int diff = sndBase - y; // 0 1 2 3 4
+		//if (debug_mode()) {
+			//printf("<-- succ ACK\n");
+		//}
+		//printf("<-- succ ACK %d\n", y);
+		int diff = sndBase - y;
 		sndBase = y;
 		dup_acks = 0;
 
 		int effectiveWin = min(W, rcv_hdr->recvWnd);
-
+		
 		// how much we can advance the semaphore [ref: hw3p3.pdf]
 		int newReleased = sndBase + effectiveWin - lastReleased;
+		if (debug_mode())
+			printf("<-- succ ACK %d newReleased (%d) = sndBase (%d) + effectiveWin (%d) - lastReleased (%d)\n", y, newReleased, sndBase, effectiveWin, lastReleased);
+
 		ReleaseSemaphore(empty, newReleased, NULL);
 		lastReleased += newReleased;
 
-
+		//todo check if mutex needed
 		WaitForSingleObject(params.mtx, INFINITE);
-		params.MBacked += (diff*MAX_PKT_SIZE * 1.0) / 1000000; //TODO check if this is correct way of doing it. We are finding no. of packets effectively acked and multiplying by MAX_PKT_SIZE
+		params.MBacked += (MAX_PKT_SIZE * 1.0) / 1000000; //TODO check if this is correct way of doing it. We are finding no. of packets effectively acked and multiplying by MAX_PKT_SIZE
 		params.base = sndBase;
 		params.windowSize = effectiveWin;
 		ReleaseMutex(params.mtx);
-
-		//W = params.windowSize; // TODO check if W needs to change as well
 	}
 	else {
 		// duplicate ACK
-		if (debug_mode)
-			printf("duplicate ACK\n");
+		//if (debug_mode())
+		
 		dup_acks++;
+		if(debug_mode())
+			printf("<-- duplicate ACK %d | dup_acks=%d\n", y, dup_acks);
 
 		if (dup_acks == FAST_RTX_DUP_THRESH) {
-			if (debug_mode) {
+			if (debug_mode()) {
 				printf("fast rtx for packet %d\n", y);
 			}
 			// We need to do fast retransmission for the base
 			int res = SendToUtil(y);
 
+			//todo check if mutex needed
 			WaitForSingleObject(params.mtx, INFINITE);
 			params.F++;
 			ReleaseMutex(params.mtx);
@@ -815,28 +812,20 @@ int SenderSocket::ReceiveACK()
 		}
 	}
 
-	/*
-	*  
-	Third, upon receiving an ACK that moves the base from x to x + y, an RTT sample is
-	computed only based on packet x + y – 1 and only if there were no prior retransmissions of base x
-
-	TODO check how to factor in no prior retransmissions of base x 
-	*/
-	send_time = pkt_sent_time[(y - 1) % W];
-	elapsed = ELAPSED(send_time, send_ack_time); // in seconds
-	double sampleRTT = elapsed;
 	
-	WaitForSingleObject(params.mtx, INFINITE);
-	params.RTT = (1 - alpha) * params.RTT + alpha * sampleRTT;
-	params.devRTT = (1 - beta) * params.devRTT + beta * abs(sampleRTT - params.RTT);
-	ReleaseMutex(params.mtx);
-
-	// RTO = estRTT + 4 * max (devRTT, 0.010);
-	my_rto = params.RTT + 4 * max(params.devRTT, 0.010); //TODO should we set RTO here this way?
-
 	
 	return STATUS_OK;
 
+}
+
+bool SenderSocket::is_all_sent() {
+	// consumer has sent everything that the producer gave
+	if (seq == params.nextSeq) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 void SenderSocket::stopStats() {
@@ -846,28 +835,54 @@ void SenderSocket::stopStats() {
 	if (statsThread.joinable()) {
 		statsThread.join();
 	}*/
-	if (debug_mode) 
-		printf("setting event_quit...\n");
+
+	// main.cpp (producer) is done populating packets in the shared buffer
+	params.populating_complete = true;
+
+	// But, the worker thread (consumer) may not have sent out all those packets
+	// => Wait until worker thread has sent all packets
 	
+	//unique_lock<mutex> lck(mtx);
+	//while (cv.wait_for(lck, 1s, is_all_sent) == false) {
+	//	// do nothing
+	//}
+	while (seq != params.nextSeq) {
+		std::this_thread::sleep_for(1000ms);
+	}
+	// Now, everything has been sent [but all ACKs may not have been obtained]
+
+	if (debug_mode()){
+		printf("stopstats called: seq: %d sndBase: %d params.nextSeq:%d\n", seq, sndBase, params.nextSeq);
+		printf("setting event_quit...\n");
+	}
+
 	WaitForSingleObject(params.mtx, INFINITE);
 	SetEvent(params.event_quit);
 	ReleaseMutex(params.mtx);
 
-	if (debug_mode)
+	if (debug_mode())
 		printf("event_quit has been set...");
+
+	while (sndBase != seq) {
+		std::this_thread::sleep_for(100ms);
+	}
+
+	WaitForSingleObject(params.mtx, INFINITE);
+	SetEvent(params.worker_quit);
+	ReleaseMutex(params.mtx);
 
 	// wait for worker thread to end
 	WaitForSingleObject(th_worker, INFINITE);
 	CloseHandle(th_worker);
 
-	if (debug_mode)
+	if (debug_mode())
 		printf("th_worker has been stopped...");
 
 	// wait for stats to end
 	WaitForSingleObject(th_stats, INFINITE);
 	CloseHandle(th_stats);
 
-	if (debug_mode)
+	if (debug_mode())
 		printf("th_stats has been stopped...");
 
 }

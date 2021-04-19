@@ -24,7 +24,7 @@ public:
 
 	bool is_conn_open;
 
-	bool debug_mode;
+	bool is_debug_mode;
 
 	HANDLE th_stats, th_worker;
 	HANDLE empty;
@@ -60,5 +60,9 @@ public:
 	int SendToUtil(int next_to_send);
 
 	int ReceiveACK();
+
+	bool debug_mode();
+
+	bool is_all_sent();
 
 };

@@ -56,8 +56,14 @@ public:
 	float RTT;
 	float devRTT;
 
+	bool debug = false;
+
+	bool populating_complete = false;
+
+	int temp_rto;
+
 	hrc::time_point obj_st_time;
-	HANDLE event_quit;
+	HANDLE event_quit, worker_quit;
 	HANDLE mtx;
 	SharedParameters();
 
