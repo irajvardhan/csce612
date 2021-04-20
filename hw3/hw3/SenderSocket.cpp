@@ -15,9 +15,11 @@ float alpha = 0.125; // used for RTO computation
 float beta = 0.25;
 
 bool SenderSocket::debug_mode() {
+	return false;
+	
 	int r = rand() % 100000;
 	if (r == 0) {
-		return false;
+		return true;
 	}
 	else {
 		return false;
@@ -46,15 +48,19 @@ DWORD WINAPI showStats(LPVOID lpParams) {
 	while (WaitForSingleObject(params->event_quit, 2000) == WAIT_TIMEOUT) {
 		cur_time = hrc::now();
 		elapsed = ELAPSED(params->obj_st_time, cur_time);
-		int num_bits_received_interval = (params->base - prev_base) * (MAX_PKT_SIZE - sizeof(SenderDataHeader)) * 8;
+		long num_bits_received_interval = (params->base - prev_base) * (MAX_PKT_SIZE - sizeof(SenderDataHeader)) * 8;
 		
+		float Mbits_received_interval = (params->base - prev_base) * ((MAX_PKT_SIZE - sizeof(SenderDataHeader))/1e6) * 8;
+
 		prev_base = params->base;
 		elapsed_interval = ELAPSED(prev_time, cur_time);
 		prev_time = cur_time;
 		
 		//todo check if we need to wrap this with mutex
 		WaitForSingleObject(params->mtx, INFINITE);
-		params->speed = (num_bits_received_interval/1e6) / elapsed_interval; // in Mbps
+		//params->speed = (num_bits_received_interval/1e6) / elapsed_interval; // in Mbps
+		params->speed = Mbits_received_interval / elapsed_interval; // in Mbps
+
 		ReleaseMutex(params->mtx);
 
 		
@@ -340,7 +346,7 @@ int SenderSocket::Open(char* target_host, int rcv_port, int sender_window, LinkP
 	server.sin_family = AF_INET;
 	server.sin_port = htons(rcv_port);
 
-	float rto = 6.0; // todo change back to 1.0
+	float rto = 1.0; // todo change back to 1.0
 	my_lp = *lp;
 	
 	SenderSynHeader ss_hdr;

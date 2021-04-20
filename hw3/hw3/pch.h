@@ -31,6 +31,10 @@
 #define MAGIC_PORT 22345 // receiver listens on this port
 #define MAX_PKT_SIZE (1500-28) // maximum UDP packet size accepted by receiver
 
+// Use this only for dummy receiver
+//#define MAX_PKT_SIZE (9000-28) // maximum UDP packet size accepted by receiver
+
+
 #define FAST_RTX_DUP_THRESH 3
 
 // using chrono high_resolution_clock

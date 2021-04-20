@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 	// Main: transfer finished in 9.818 sec, 106.80 Kbps, checksum FC694CF3
 	printf("Main:\ttransfer finished in %.3f sec, %.2f Kbps, checksum %X\n", elapsed, transfer_rate, check);
 	
-	float kbits_per_transmission = ((MAX_PKT_SIZE - sizeof(SenderDataHeader)) * 8.0) / 1000; // divide by 1000 to go from bits to Kbits
+	float kbits_per_transmission = senderWindow*((MAX_PKT_SIZE - sizeof(SenderDataHeader)) * 8.0) / 1000; // divide by 1000 to go from bits to Kbits
 	float ideal_rate = kbits_per_transmission / estRTT;
 	// Main: estRTT 0.102, ideal rate 114.41 Kbps
 	printf("Main:\testRTT %.3f, ideal rate %.2f Kbps\n", estRTT, ideal_rate);
