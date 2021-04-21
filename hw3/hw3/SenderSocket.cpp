@@ -112,8 +112,7 @@ DWORD WINAPI runWorker(LPVOID lpParams) {
 		return 0;
 	}
 
-	//HANDLE arr_handles[] = { ss->sock_recv_ready, ss->full}; // todo check if ss->params.event_quit is needed
-	HANDLE arr_handles[] = { ss->sock_recv_ready, ss->full, ss->params.worker_quit }; // todo ss->params.event_quit
+	HANDLE arr_handles[] = { ss->sock_recv_ready, ss->full, ss->params.worker_quit }; 
 
 	DWORD timeout;
 
@@ -121,13 +120,8 @@ DWORD WINAPI runWorker(LPVOID lpParams) {
 	int next_to_send = ss->params.base;
 
 	while (true) {
-		// todo
-		/*if (pending packets)
-			timeout = timerExpire - cur_time;
-		else*/
-
 		// TODO find out what should be the condition here to check for pending packets
-		if (ss->params.nextSeq > 1) {
+		if (ss->params.nextSeq >= 1) {
 			timeout = 1000*ss->my_rto; //my_rto is in sec so we need to convert to ms as expecte by WaitForMultipleObjects
 			ss->params.temp_rto = timeout;
 		}
@@ -181,7 +175,7 @@ DWORD WINAPI runWorker(LPVOID lpParams) {
 
 			}
 			else {
-				printf("MAX ATTEMPTS crossed for sndBase %d\n", ss->sndBase % ss->W);
+				printf("MAX ATTEMPTS crossed for sndBase %d\n", ss->sndBase);
 				exit(0); // todo check if we should end here
 				//return TIMEOUT;
 			}
@@ -192,7 +186,6 @@ DWORD WINAPI runWorker(LPVOID lpParams) {
 			return 1;
 		}else {
 			//WAIT_FAILED
-			//printf("Worker thread got WAIT_FAILED with error %d\n", GetLastError());
 			
 			/*
 			* We can't stop the worker thread until we have received all the pending ACKS
@@ -667,9 +660,9 @@ int SenderSocket::SendToUtil(int next_to_send)
 	int numBytes = pkt_num_bytes[idx];
 	
 
-	//if (debug_mode()) {
-	//printf("--> next_to_send=%d and seq=%d\n", next_to_send, sender_pkt.sdh.seq);
-	//}
+	if (debug_mode()) {
+		printf("--> next_to_send=%d and seq=%d\n", next_to_send, sender_pkt.sdh.seq);
+	}
 	// todo remove this
 	//std::this_thread::sleep_for(0.5ms);
 	

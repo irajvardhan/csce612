@@ -26,7 +26,9 @@
 #define BIND_SOCKET_FAILED -3 // bind socket failed
 
 #define MAX_ATTEMPTS_SYN 3 // for SYN packets
-#define MAX_ATTEMPTS_OTHER 5 // for all other except SYN
+//#define MAX_ATTEMPTS_OTHER 5 // for all other except SYN
+#define MAX_ATTEMPTS_OTHER 50 // for part 3
+
 
 #define MAGIC_PORT 22345 // receiver listens on this port
 #define MAX_PKT_SIZE (1500-28) // maximum UDP packet size accepted by receiver
