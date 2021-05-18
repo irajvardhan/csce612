@@ -45,15 +45,12 @@ public:
 
 	// --done-- //
 
-	
-
 	SenderSocket();
 	int Open(char* targetHost, int rcvPort, int senWindow, LinkProperties* lp);
 
 	int Close(float* estimated_RTT);
 
-	// temp todo remove
-	void stopStats();
+	void stopThreadsUtil();
 
 	int Send(char* sendBuf, int numBytes);
 
